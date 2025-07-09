@@ -3,6 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{031B4B9C-4962-4738-96C3-A03EFEDF45FE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI", "src\SharpCLI\SharpCLI.csproj", "{B12B52DB-FBC5-4E6D-9366-D84B34703E01}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "artifacts", "artifacts", "{2C378BF0-F9AA-42DD-A098-54F1F64ED42A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -10,5 +16,14 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B12B52DB-FBC5-4E6D-9366-D84B34703E01} = {031B4B9C-4962-4738-96C3-A03EFEDF45FE}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
