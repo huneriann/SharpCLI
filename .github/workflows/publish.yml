@@ -1,0 +1,23 @@
+name: publish to nuget
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+jobs:
+  publish:
+    name: pack and publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 8.0.x
+
+      - name: pack
+        run: dotnet pack -c Release src/SharpCLI/SharpCLI.csproj -o ./artifacts
+
+      - name: nuget push
+        working-directory: artifacts
+        run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
