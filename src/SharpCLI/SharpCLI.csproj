@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <PackageId>SharpCLI</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Title>SharpCli - Modern CLI Framework for .NET</Title>
     <Summary>Attribute-based CLI framework for .NET with automatic parsing and help generation</Summary>
     <Description>A modern, attribute-based CLI framework for .NET that makes building command-line applications simple and intuitive. Transform your methods into powerful CLI commands using simple attributes with automatic argument parsing, help generation, and async support.</Description>
@@ -19,14 +19,14 @@
     <PackageTags>cli;command-line;dotnet;csharp;framework;console;arguments;options;parsing;attributes;modern;async</PackageTags>
     <RepositoryUrl>https://github.com/huneriann/SharpCLI</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReleaseNotes>See CHANGELOG.md for detailed release notes.</PackageReleaseNotes>
+    <!--<PackageReleaseNotes>See CHANGELOG.md for detailed release notes.</PackageReleaseNotes>-->
     <PackageProjectUrl>https://github.com/huneriann/SharpCLI</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryBranch>main</RepositoryBranch>
+    <RepositoryBranch>master</RepositoryBranch>
     <Company>huneriann</Company>
     <Product>SharpCLI</Product>
-    <Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
+    <Copyright>Copyright © $(Authors) $([System.DateTime]::Now.Year)</Copyright>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -53,9 +53,6 @@
     <AssemblyCompany>$(Company)</AssemblyCompany>
     <AssemblyProduct>$(Product)</AssemblyProduct>
     <AssemblyCopyright>$(Copyright)</AssemblyCopyright>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <InformationalVersion>1.0.0</InformationalVersion>
   </PropertyGroup>
 
   <!-- Performance optimizations -->
@@ -81,12 +78,6 @@
     <None Include="../../LICENSE.md" Pack="true" PackagePath="\" />
     <None Include="../../CHANGELOG.md" Pack="true" PackagePath="\" />
     <None Include="../../icon.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="SharpCli.Tests" />
-    <InternalsVisibleTo Include="SharpCli.IntegrationTests" />
-    <InternalsVisibleTo Include="SharpCli.Benchmarks" />
   </ItemGroup>
 
 </Project>
