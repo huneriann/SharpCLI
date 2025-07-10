@@ -1,6 +1,6 @@
 # SharpCLI
 
-<img src="https://raw.githubusercontent.com/huneriann/sharpcli/master/icon.png" alt="sharp-cli-icon" style="width:270px;height:270px"/><br>
+![sharp-cli-icon](https://github.com/huneriann/sharpcli/blob/master/icon.png?raw=true)
 
 [![NuGet](https://img.shields.io/nuget/v/sharpcli.svg)](https://www.nuget.org/packages/sharpcli)
 [![publish to nuget](https://github.com/huneriann/sharpcli/actions/workflows/publish.yml/badge.svg)](https://github.com/huneriann/sharpcli/actions/workflows/publish.yml)
