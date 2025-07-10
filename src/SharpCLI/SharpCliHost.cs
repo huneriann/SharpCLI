@@ -7,6 +7,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Reflection;
+#if NET5_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 using Models;
 using ParameterInfo = Models.ParameterInfo;
 
@@ -66,7 +69,11 @@ public class SharpCliHost(string name, string description = "")
     /// </summary>
     /// <typeparam name="T">Type containing static command methods</typeparam>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
+#if NET5_0_OR_GREATER
+    public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>() where T : class
+#else
     public SharpCliHost RegisterCommands<T>() where T : class
+#endif
     {
         var type = typeof(T);
         // Only get static methods since no instance is provided
