@@ -40,8 +40,8 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <!-- .NET 5 supports trimming -->
-  <PropertyGroup>
+  <!-- Modern .NET trimming -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <IsTrimmable>true</IsTrimmable>
     <TrimMode>link</TrimMode>
   </PropertyGroup>
