@@ -1,8 +1,10 @@
 ﻿namespace SharpCLI;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Reflection;
 using Models;
@@ -25,6 +27,14 @@ public class SharpCliHost(string name, string description = "")
     /// Dictionary mapping command aliases to their actual command names
     /// </summary>
     private readonly Dictionary<string, string> _aliases = new();
+
+    /// <summary>
+    /// Cache of compiled factory functions that generate default values for types.
+    /// This provides high-performance type-safe default value creation while avoiding
+    /// trimming issues with Activator.CreateInstance.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, Func<object>> DefaultValueFactories =
+        new ConcurrentDictionary<Type, Func<object>>();
 
     /// <summary>
     /// Registers all methods marked with [Command] attribute from an instance object.
@@ -388,28 +398,45 @@ public class SharpCliHost(string name, string description = "")
     }
 
     /// <summary>
-    /// Gets the default value for a given type.
-    /// Used for initializing parameters when no value is provided.
+    /// Gets the default value for the specified type using compiled expression trees.
     /// </summary>
-    /// <param name="type">Type to get default value for</param>
-    /// <returns>Default value for the type</returns>
+    /// <param name="type">The type to get the default value for.</param>
+    /// <returns>
+    /// The default value for the specified type:
+    /// <list type="bullet">
+    /// <item><description>For reference types and nullable value types: <see langword="null"/></description></item>
+    /// <item><description>For value types: The result of <c>default(T)</c> (e.g., 0 for <see cref="int"/>, false for <see cref="bool"/>)</description></item>
+    /// </list>
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method uses cached compiled expression trees for optimal performance on repeated calls.
+    /// The first call for each type compiles an expression equivalent to <c>() => (object)default(T)</c>,
+    /// which is then cached and reused for subsequent calls.
+    /// </para>
+    /// <para>
+    /// This approach is trimming-safe and does not rely on reflection or <see cref="Activator.CreateInstance(Type)"/>,
+    /// making it suitable for AOT compilation scenarios.
+    /// </para>
+    /// </remarks>
     private static object GetDefaultValue(Type type)
     {
-        // Explicit defaults for common types
-        if (type == typeof(string)) return "";
-        if (type == typeof(bool)) return false;
-        if (type == typeof(int)) return 0;
-        if (type == typeof(double)) return 0.0;
-        if (type == typeof(float)) return 0.0f;
-        if (type == typeof(long)) return 0L;
-        if (type == typeof(decimal)) return 0m;
+        var factory = DefaultValueFactories.GetOrAdd(type, t =>
+        {
+            // Handle nullable and reference types
+            if (!t.IsValueType || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>)))
+            {
+                return () => null!;
+            }
 
-        // Nullable types default to null
-        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
-            return null!;
+            // Create expression: () => (object)default(T)
+            var defaultExpr = Expression.Default(t);
+            var convertExpr = Expression.Convert(defaultExpr, typeof(object));
+            var lambda = Expression.Lambda<Func<object>>(convertExpr);
+            return lambda.Compile();
+        });
 
-        // Value types use Activator.CreateInstance, reference types default to null
-        return type.IsValueType ? Activator.CreateInstance(type)! : null!;
+        return factory();
     }
 
     /// <summary>
