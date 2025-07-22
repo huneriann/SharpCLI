@@ -14,6 +14,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github/workflows", ".githu
 		.github\workflows\publish.yml = .github\workflows\publish.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{972DDD30-F5B2-4D6D-8430-B638F9532633}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SharpCLI.Samples.DotnetCore", "SharpCLI.Samples.DotnetCore", "{709E1C45-D462-4DAE-89C0-024FC57A1409}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SharpCLI.Samples.DotnetCore\SharpCLI.Samples.DotnetCore.sln = samples\SharpCLI.Samples.DotnetCore\SharpCLI.Samples.DotnetCore.sln
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,6 +31,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01} = {031B4B9C-4962-4738-96C3-A03EFEDF45FE}
+		{709E1C45-D462-4DAE-89C0-024FC57A1409} = {972DDD30-F5B2-4D6D-8430-B638F9532633}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
