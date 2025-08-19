@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using System.Text;
 using System.Reflection;
 using Models;
 using ParameterInfo = Models.ParameterInfo;
@@ -460,41 +461,37 @@ public class SharpCliHost(string name, string description = "")
     /// <param name="command">Command info containing help details</param>
     private void ShowCommandHelp(string commandName, CommandInfo command)
     {
-        Console.WriteLine($"Usage: {name} {commandName} [OPTIONS] [ARGUMENTS]");
-        Console.WriteLine();
+        var sb = new StringBuilder();
+
+        sb.AppendLine($"Usage: {name} {commandName} [OPTIONS] [ARGUMENTS]\n");
 
         if (!string.IsNullOrEmpty(command.Description))
         {
-            Console.WriteLine(command.Description);
-            Console.WriteLine();
+            sb.AppendLine($"{command.Description}\n");
         }
 
         // Show arguments section
         var arguments = command.Parameters.Where(p => p.IsArgument).OrderBy(p => p.Position);
         if (arguments.Any())
         {
-            Console.WriteLine("Arguments:");
+            sb.AppendLine("Arguments:\n");
             foreach (var arg in arguments)
             {
                 var required = arg.Required ? " (required)" : " (optional)";
-                Console.WriteLine($"  {arg.Name.ToUpper()}{required}  {arg.Description}");
+                sb.AppendLine($"  {arg.Name.ToUpper()}{required}  {arg.Description}\n");
             }
-
-            Console.WriteLine();
         }
 
         // Show options section
         var options = command.Parameters.Where(p => p.IsOption);
         if (options.Any())
         {
-            Console.WriteLine("Options:");
+            sb.AppendLine("Options:\n");
             foreach (var opt in options)
             {
                 var shortOpt = string.IsNullOrEmpty(opt.ShortName) ? "   " : $"-{opt.ShortName},";
-                Console.WriteLine($"  {shortOpt} --{opt.LongName}  {opt.Description}");
+                sb.AppendLine($"  {shortOpt} --{opt.LongName}  {opt.Description}\n");
             }
-
-            Console.WriteLine();
         }
     }
 
@@ -504,19 +501,22 @@ public class SharpCliHost(string name, string description = "")
     /// </summary>
     private void ShowHelp()
     {
-        Console.WriteLine($"{name} - {description}");
-        Console.WriteLine();
-        Console.WriteLine("USAGE:");
-        Console.WriteLine($"  {name} <command> [options] [arguments]");
-        Console.WriteLine();
-        Console.WriteLine("COMMANDS:");
+        var sb = new StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(description)) sb.AppendLine($"{name} - {description}\n");
+        else sb.AppendLine($"{name}\n");
+
+        sb.AppendLine("USAGE:\n");
+        sb.AppendLine($"  {name} <command> [options] [arguments]\n");
+        sb.AppendLine();
+        sb.AppendLine("COMMANDS:\n");
 
         foreach (var kvp in _commands)
         {
-            Console.WriteLine($"  {kvp.Key,-15} {kvp.Value.Description}");
+            sb.AppendLine($"  {kvp.Key,-15} {kvp.Value.Description}");
         }
 
-        Console.WriteLine();
-        Console.WriteLine($"Use '{name} <command> --help' for more information about a command.");
+        sb.AppendLine($"\nUse '{name} <command> --help' for more information about a command.");
+        Console.WriteLine(sb.ToString());
     }
 }
