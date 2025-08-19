@@ -7,11 +7,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Reflection;
+using Models;
+using ParameterInfo = Models.ParameterInfo;
+
 #if NET5_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
 #endif
-using Models;
-using ParameterInfo = Models.ParameterInfo;
 
 /// <summary>
 /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
@@ -43,20 +44,20 @@ public class SharpCliHost(string name, string description = "")
     /// Registers all methods marked with [Command] attribute from an instance object.
     /// This allows for instance-based commands where the object can maintain state.
     /// </summary>
-    /// <param name="commandsObject">Object containing command methods</param>
+    /// <param name="commandsesObject">Object containing command methods</param>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
-    public SharpCliHost RegisterCommands(object commandsObject)
+    public SharpCliHost RegisterCommands(ICommandsContainer commandsesObject)
     {
-        var type = commandsObject.GetType();
+        var type = commandsesObject.GetType();
         // Get both instance and static methods from the object
-        var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static);
+        var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
         foreach (var method in methods)
         {
             var commandAttr = method.GetCustomAttribute<CommandAttribute>();
             if (commandAttr != null)
             {
-                RegisterCommand(commandsObject, method, commandAttr);
+                RegisterCommand(commandsesObject, method, commandAttr);
             }
         }
 
@@ -70,9 +71,10 @@ public class SharpCliHost(string name, string description = "")
     /// <typeparam name="T">Type containing static command methods</typeparam>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
 #if NET5_0_OR_GREATER
-    public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>() where T : class
+    public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>()
+        where T : class, ICommandsContainer
 #else
-    public SharpCliHost RegisterCommands<T>() where T : class
+    public SharpCliHost RegisterCommands<T>() where T : class, ICommandsContainer
 #endif
     {
         var type = typeof(T);
@@ -204,21 +206,21 @@ public class SharpCliHost(string name, string description = "")
         }
 
         // Resolve command aliases to actual command names
-        if (_aliases.ContainsKey(commandName))
+        if (_aliases.TryGetValue(commandName, out var alias))
         {
-            commandName = _aliases[commandName];
+            commandName = alias;
         }
 
         // Check if command exists
-        if (!_commands.ContainsKey(commandName))
+        if (!_commands.TryGetValue(commandName, out var command))
         {
             Console.WriteLine($"Unknown command: {commandName}");
             Console.WriteLine($"Use '{name} --help' for usage information.");
             return 1;
         }
 
-        var command = _commands[commandName];
-        var commandArgs = args.Skip(1).ToArray(); // Remove command name from arguments
+        // Remove command name from arguments
+        var commandArgs = args.Skip(1).ToArray();
 
         try
         {
@@ -239,13 +241,16 @@ public class SharpCliHost(string name, string description = "")
                 var result = command.Method.Invoke(command.Instance, parameters);
                 switch (result)
                 {
+                    // Return the int result from Task<int>
                     case Task<int> taskInt:
-                        return await taskInt; // Return the int result from Task<int>
+                        return await taskInt;
+                    // Task without return value, assume success
                     case Task task:
                         await task;
-                        return 0; // Task without return value, assume success
+                        return 0;
+                    // Fallback for unexpected return types
                     default:
-                        return 0; // Fallback for unexpected return types
+                        return 0;
                 }
             }
             else
@@ -255,7 +260,8 @@ public class SharpCliHost(string name, string description = "")
                 if (result is int intResult)
                     return intResult; // Return the int result
 
-                return 0; // Void methods or unexpected return types, assume success
+                // Void methods or unexpected return types, assume success
+                return 0;
             }
         }
         catch (Exception ex)
@@ -273,7 +279,7 @@ public class SharpCliHost(string name, string description = "")
     /// <param name="command">Command info containing parameter definitions</param>
     /// <param name="args">Command-line arguments (excluding the command name)</param>
     /// <returns>Array of parsed parameter values in method signature order</returns>
-    private object[] ParseArguments(CommandInfo command, string[] args)
+    private static object[] ParseArguments(CommandInfo command, string[] args)
     {
         // Separate arguments (positional) from options (named)
         var arguments = command.Parameters.Where(p => p.IsArgument).OrderBy(p => p.Position).ToArray();
@@ -338,7 +344,7 @@ public class SharpCliHost(string name, string description = "")
         {
             if (!arg.Required) continue;
             var argIndex = Array.IndexOf(command.Parameters, arg);
-            if (result[argIndex] == null || result[argIndex]!.Equals(GetDefaultValue(arg.Type)))
+            if (result[argIndex].Equals(GetDefaultValue(arg.Type)))
             {
                 throw new ArgumentException($"Required argument '{arg.Name}' is missing");
             }
