@@ -1,10 +1,12 @@
 # SharpCLI
 
+---
+
 ![sharp-cli-icon](https://raw.githubusercontent.com/huneriann/sharpcli/master/icon.png?raw=true)
 
 [![NuGet](https://img.shields.io/nuget/v/sharpcli.svg)](https://www.nuget.org/packages/sharpcli)
+[![Nuget Downloads](https://img.shields.io/nuget/dt/SharpCLI)](https://www.nuget.org/packages/sharpcli)
 [![publish to nuget](https://github.com/huneriann/sharpcli/actions/workflows/publish.yml/badge.svg)](https://github.com/huneriann/sharpcli/actions/workflows/publish.yml)
----
 
 > **A modern, attribute-based CLI framework for .NET**
 

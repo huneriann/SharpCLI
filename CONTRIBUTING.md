@@ -1,14 +1,13 @@
 # Contributing to SharpCLI
 
-Thank you for your interest in contributing to SharpCLI! We welcome contributions from everyone, whether you're fixing bugs, adding features, improving documentation, or helping with testing.
+Thank you for your interest in contributing to SharpCLI! We welcome contributions from everyone, whether you're fixing
+bugs, adding features, improving documentation, or helping with testing.
 
 ## Getting Started
 
----
-
 ### Prerequisites
 
-- **.NET 8.0 SDK** or later
+- **.NET Standard 2.0/2.1 or .NET 5.0 SDK** or later
 - **Git**
 - A code editor (Visual Studio, VS Code, JetBrains Rider, etc.)
 
@@ -45,13 +44,11 @@ SharpCLI/
 │       └── SharpCLI.csproj      # Multi-target (netstandard2.0, net8.0)
 ├── .github/workflows/           # CI/CD workflows
 ├── README.md
-├── CHANGELOG.md
+├── CONTRIBUTING.md
 └── LICENSE.md
 ```
 
 ## How to Contribute
-
----
 
 ### Reporting Issues
 
@@ -61,10 +58,10 @@ Before creating a new issue, please:
 2. **Use the issue template** if available
 3. **Provide clear reproduction steps** for bugs
 4. **Include relevant information**:
-   - .NET version and target framework
-   - Operating system
-   - SharpCLI version
-   - Code samples demonstrating the issue
+    - .NET version and target framework
+    - Operating system
+    - SharpCLI version
+    - Code samples demonstrating the issue
 
 ### Suggesting Features
 
@@ -89,6 +86,7 @@ Use descriptive branch names with prefixes:
 - `ci/` - CI/CD changes
 
 Examples:
+
 - `feature/add-configuration-file-support`
 - `bugfix/fix-nullable-parameter-parsing`
 - `docs/update-api-documentation`
@@ -106,6 +104,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 **Types:**
+
 - `feat` - New features
 - `fix` - Bug fixes
 - `docs` - Documentation changes
@@ -116,6 +115,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `perf` - Performance improvements
 
 **Examples:**
+
 ```
 feat: add support for configuration files
 fix(parsing): handle nullable enum parameters correctly
@@ -140,7 +140,7 @@ test: add unit tests for multi-target framework compatibility
    dotnet test  # When tests are available
    ```
 
-4. **Update documentation** if needed (README.md, CHANGELOG.md)
+4. **Update documentation** if needed (README.md, CONTRIBUTING.md etc.)
 
 5. **Commit your changes** with clear commit messages
 
@@ -150,10 +150,10 @@ test: add unit tests for multi-target framework compatibility
    ```
 
 7. **Create a Pull Request** with:
-   - Clear title and description
-   - Reference to related issues
-   - Description of changes made
-   - Any breaking changes noted
+    - Clear title and description
+    - Reference to related issues
+    - Description of changes made
+    - Any breaking changes noted
 
 #### Code Review Process
 
@@ -164,11 +164,9 @@ test: add unit tests for multi-target framework compatibility
 
 ## Coding Standards
 
----
-
 ### C# Style Guidelines
 
-- Follow [Microsoft's C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)
+Follow [Microsoft's C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)
 - Use meaningful variable and method names
 - Add **comprehensive XML documentation** for public APIs
 - Keep methods focused and concise
@@ -178,10 +176,11 @@ test: add unit tests for multi-target framework compatibility
 
 SharpCLI targets both **netstandard2.0** and **net8.0**:
 
-- **netstandard2.0**: Broad compatibility (.NET Framework 4.7.2+, .NET Core 2.0+)
-- **net8.0**: Modern features (trimming, AOT compilation)
+- **netstandard2.0/2.1**: Broad compatibility (.NET Framework 4.7.2+, .NET Core 2.0+)
+- **net5.0**: Modern features
 
 Use conditional compilation when needed:
+
 ```csharp
 #if NET5_0_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
@@ -238,8 +237,6 @@ public class CommandConfig(string name, string? description = null)
 
 ## Documentation
 
----
-
 ### API Documentation
 
 - Use **comprehensive XML documentation** for all public APIs
@@ -256,18 +253,13 @@ public class CommandConfig(string name, string? description = null)
 
 ## Release Process
 
----
-
 Releases are handled by maintainers:
 
 1. **Version tags** (v*) trigger automatic NuGet publishing via GitHub Actions
-2. **Release notes** are generated from CHANGELOG.md
-3. **Breaking changes** require major version increments
-4. **Multi-target packages** are built and published automatically
+2. **Breaking changes** require major version increments
+3. **Multi-target packages** are built and published automatically
 
 ## Architecture Guidelines
-
----
 
 ### Framework Design Principles
 
@@ -287,24 +279,17 @@ SharpCLI follows these core paradigms:
 
 ## Getting Help
 
----
-
 - **GitHub Issues** - For bugs and feature requests
 - **GitHub Discussions** - For questions and general discussion
 - **Code Reviews** - Learn from feedback on your PRs
 
 ## Code of Conduct
 
----
-
 Please be respectful and professional in all interactions. We're all here to make SharpCLI better together.
 
 ## License
 
----
-
-By contributing to SharpCLI, you agree that your contributions will be licensed under the same license as the project (MIT License).
-
----
+By contributing to SharpCLI, you agree that your contributions will be licensed under the same license as the project (
+MIT License).
 
 🎉 **Thank you for contributing to SharpCLI!** 
