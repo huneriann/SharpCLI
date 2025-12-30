@@ -1,4 +1,7 @@
-﻿namespace SharpCLI;
+﻿using System.Globalization;
+using System.IO;
+
+namespace SharpCLI;
 
 using System;
 using System.Collections.Concurrent;
@@ -19,9 +22,7 @@ using System.Diagnostics.CodeAnalysis;
 /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
 /// Provides an attribute-based approach for building command-line applications in C#.
 /// </summary>
-/// <param name="name">The name of the CLI application</param>
-/// <param name="description">Optional description of the CLI application</param>
-public class SharpCliHost(string name, string description = "")
+public class SharpCliHost
 {
     /// <summary>
     /// Dictionary storing all registered commands by their names
@@ -32,6 +33,28 @@ public class SharpCliHost(string name, string description = "")
     /// Dictionary mapping command aliases to their actual command names
     /// </summary>
     private readonly Dictionary<string, string> _aliases = new();
+
+    private readonly string _name;
+    private readonly string _description;
+    private readonly TextWriter? _writer;
+
+    /// <summary>
+    /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
+    /// Provides an attribute-based approach for building command-line applications in C#.
+    /// </summary>
+    /// <param name="name">The name of the CLI application</param>
+    /// <param name="description">Optional description of the CLI application</param>
+    /// <param name="writer">
+    /// The <see cref="TextWriter"/> used for all output, including help text and error messages. 
+    /// Defaults to <see cref="Console.Out"/> if null. Injecting a custom writer is recommended 
+    /// for unit testing to avoid thread-safety issues with the global Console state.
+    /// </param>
+    public SharpCliHost(string name, string description = "", TextWriter? writer = null)
+    {
+        _name = name;
+        _description = description;
+        _writer = writer ?? Console.Out;
+    }
 
     /// <summary>
     /// Cache of compiled factory functions that generate default values for types.
@@ -215,8 +238,8 @@ public class SharpCliHost(string name, string description = "")
         // Check if command exists
         if (!_commands.TryGetValue(commandName, out var command))
         {
-            Console.WriteLine($"Unknown command: {commandName}");
-            Console.WriteLine($"Use '{name} --help' for usage information.");
+            _writer.WriteLine($"Unknown command: {commandName}");
+            _writer.WriteLine($"Use '{_name} --help' for usage information.");
             return 1;
         }
 
@@ -268,7 +291,7 @@ public class SharpCliHost(string name, string description = "")
         catch (Exception ex)
         {
             // Handle any errors during command execution
-            Console.WriteLine($"Error executing command: {ex.Message}");
+            _writer.WriteLine($"Error executing command: {ex.Message}");
             return 1;
         }
     }
@@ -399,11 +422,11 @@ public class SharpCliHost(string name, string description = "")
 
         // Handle common types with specific parsing
         if (targetType == typeof(string)) return value;
-        if (targetType == typeof(int)) return int.Parse(value);
-        if (targetType == typeof(double)) return double.Parse(value);
-        if (targetType == typeof(float)) return float.Parse(value);
-        if (targetType == typeof(long)) return long.Parse(value);
-        if (targetType == typeof(decimal)) return decimal.Parse(value);
+        if (targetType == typeof(int)) return int.Parse(value, CultureInfo.InvariantCulture);
+        if (targetType == typeof(double)) return double.Parse(value, CultureInfo.InvariantCulture);
+        if (targetType == typeof(float)) return float.Parse(value, CultureInfo.InvariantCulture);
+        if (targetType == typeof(long)) return long.Parse(value, CultureInfo.InvariantCulture);
+        if (targetType == typeof(decimal)) return decimal.Parse(value, CultureInfo.InvariantCulture);
         if (targetType == typeof(bool)) return bool.Parse(value);
         if (targetType.IsEnum) return Enum.Parse(targetType, value, true);
 
@@ -463,7 +486,7 @@ public class SharpCliHost(string name, string description = "")
     {
         var sb = new StringBuilder();
 
-        sb.AppendLine($"Usage: {name} {commandName} [OPTIONS] [ARGUMENTS]\n");
+        sb.AppendLine($"Usage: {_name} {commandName} [OPTIONS] [ARGUMENTS]\n");
 
         if (!string.IsNullOrEmpty(command.Description))
         {
@@ -503,11 +526,11 @@ public class SharpCliHost(string name, string description = "")
     {
         var sb = new StringBuilder();
 
-        if (!string.IsNullOrWhiteSpace(description)) sb.AppendLine($"{name} - {description}\n");
-        else sb.AppendLine($"{name}\n");
+        if (!string.IsNullOrWhiteSpace(_description)) sb.AppendLine($"{_name} - {_description}\n");
+        else sb.AppendLine($"{_name}\n");
 
         sb.AppendLine("USAGE:\n");
-        sb.AppendLine($"  {name} <command> [options] [arguments]\n");
+        sb.AppendLine($"  {_name} <command> [options] [arguments]\n");
         sb.AppendLine();
         sb.AppendLine("COMMANDS:\n");
 
@@ -516,7 +539,7 @@ public class SharpCliHost(string name, string description = "")
             sb.AppendLine($"  {kvp.Key,-15} {kvp.Value.Description}");
         }
 
-        sb.AppendLine($"\nUse '{name} <command> --help' for more information about a command.");
-        Console.WriteLine(sb.ToString());
+        sb.AppendLine($"\nUse '{_name} <command> --help' for more information about a command.");
+        _writer.WriteLine(sb.ToString());
     }
 }

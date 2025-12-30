@@ -21,6 +21,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SharpCLI.Samples.DotnetCore
 		samples\SharpCLI.Samples.DotnetCore\SharpCLI.Samples.DotnetCore.sln = samples\SharpCLI.Samples.DotnetCore\SharpCLI.Samples.DotnetCore.sln
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7D54B1F7-9795-4D5C-ABB1-3CC3ADF489DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.UnitTests", "tests\SharpCLI.UnitTests\SharpCLI.UnitTests.csproj", "{BFF30213-4E15-409E-8986-4D3391AC32FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,11 +36,16 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01} = {031B4B9C-4962-4738-96C3-A03EFEDF45FE}
 		{709E1C45-D462-4DAE-89C0-024FC57A1409} = {972DDD30-F5B2-4D6D-8430-B638F9532633}
+		{BFF30213-4E15-409E-8986-4D3391AC32FF} = {7D54B1F7-9795-4D5C-ABB1-3CC3ADF489DB}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFF30213-4E15-409E-8986-4D3391AC32FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFF30213-4E15-409E-8986-4D3391AC32FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFF30213-4E15-409E-8986-4D3391AC32FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFF30213-4E15-409E-8986-4D3391AC32FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
