@@ -14,6 +14,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github/workflows", ".githu
 		.github\workflows\publish.yml = .github\workflows\publish.yml
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{42FCB88A-5A5C-49C1-A1A3-41A02E11063C}"
+	ProjectSection(SolutionItems) = preProject
+		samples\SharpCLI.Samples.sln = samples\SharpCLI.Samples.sln
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Samples.StaticMethods", "samples\SharpCLI.Samples.StaticMethods\SharpCLI.Samples.StaticMethods.csproj", "{DFC22141-219A-4883-BD23-08F68DFF3D19}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,11 +31,16 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01} = {031B4B9C-4962-4738-96C3-A03EFEDF45FE}
+		{DFC22141-219A-4883-BD23-08F68DFF3D19} = {42FCB88A-5A5C-49C1-A1A3-41A02E11063C}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFC22141-219A-4883-BD23-08F68DFF3D19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFC22141-219A-4883-BD23-08F68DFF3D19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFC22141-219A-4883-BD23-08F68DFF3D19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFC22141-219A-4883-BD23-08F68DFF3D19}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
