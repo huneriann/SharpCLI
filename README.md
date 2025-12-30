@@ -105,16 +105,5 @@ public async Task<int> Download(
 }
 ```
 
-### Complex Types
-```csharp
-[Command("deploy")]
-public int Deploy(
-    [Argument("environment")] Environment env, // Enum support
-    [Option("t", "timeout")] TimeSpan timeout = default) // Custom types
-{
-    // Implementation
-}
-```
-
 ##  License
 This project is licensed under the MIT License - see the [MIT License](https://github.com/huneriann/sharpcli/blob/master/LICENSE.md) file for details.
