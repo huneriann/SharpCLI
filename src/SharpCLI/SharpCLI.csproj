@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <PackageId>SharpCLI</PackageId>
-    <Version>1.4.7</Version>
+    <Version>1.4.8</Version>
     <Title>SharpCli - Modern CLI Framework for .NET</Title>
     <Summary>Attribute-based CLI framework for .NET with automatic parsing and help generation</Summary>
     <Description>A modern, attribute-based CLI framework for .NET that makes building command-line applications simple and intuitive. Transform your methods into powerful CLI commands using simple attributes with automatic argument parsing, help generation, and async support.</Description>

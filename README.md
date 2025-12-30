@@ -1,7 +1,5 @@
 # SharpCLI
 
----
-
 ![sharp-cli-icon](https://raw.githubusercontent.com/huneriann/sharpcli/master/icon.png?raw=true)
 
 [![NuGet](https://img.shields.io/nuget/v/sharpcli.svg)](https://www.nuget.org/packages/sharpcli)
