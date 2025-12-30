@@ -1,23 +1,32 @@
-name: publish to nuget
+name: test, pack and publish
 on:
   workflow_dispatch:
   push:
     tags:
       - 'v*'
+
 jobs:
   publish:
-    name: pack and publish
+    name: test, pack and publish
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: setup dotnet
-        uses: actions/setup-dotnet@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Dotnet
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
-      - name: pack
-        run: dotnet pack -c Release src/SharpCLI/SharpCLI.csproj -o ./artifacts
+      - name: Restore dependencies
+        run: dotnet restore
 
-      - name: nuget push
+      - name: Run Tests
+        run: dotnet test --configuration Release --no-restore --verbosity normal
+
+      - name: Pack
+        run: dotnet pack -c Release src/SharpCLI/SharpCLI.csproj -o ./artifacts --no-build
+
+      - name: Nuget Push
         working-directory: artifacts
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
