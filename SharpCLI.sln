@@ -23,6 +23,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Samples.StaticMeth
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Samples.NonStaticMethods", "samples\SharpCLI.Samples.NonStaticMethods\SharpCLI.Samples.NonStaticMethods.csproj", "{F643E497-1164-4507-B187-D0D16B786565}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3556E96B-636C-4F2B-AC0E-E82E1C0E9A20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Tests.UnitTests", "tests\SharpCLI.Tests.UnitTests\SharpCLI.Tests.UnitTests.csproj", "{4D3119EA-77C1-46D4-8A10-094DD4C7F670}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +39,7 @@ Global
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01} = {031B4B9C-4962-4738-96C3-A03EFEDF45FE}
 		{DFC22141-219A-4883-BD23-08F68DFF3D19} = {42FCB88A-5A5C-49C1-A1A3-41A02E11063C}
 		{F643E497-1164-4507-B187-D0D16B786565} = {42FCB88A-5A5C-49C1-A1A3-41A02E11063C}
+		{4D3119EA-77C1-46D4-8A10-094DD4C7F670} = {3556E96B-636C-4F2B-AC0E-E82E1C0E9A20}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -49,5 +54,9 @@ Global
 		{F643E497-1164-4507-B187-D0D16B786565}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F643E497-1164-4507-B187-D0D16B786565}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F643E497-1164-4507-B187-D0D16B786565}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
