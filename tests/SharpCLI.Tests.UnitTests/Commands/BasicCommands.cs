@@ -1,6 +1,6 @@
 namespace SharpCLI.Tests.UnitTests.Commands;
 
-public class BasicCommands : ICommandsContainer
+internal class BasicCommands : ICommandsContainer
 {
     public bool WasExecuted { get; private set; }
     public string? LastValue { get; private set; }
