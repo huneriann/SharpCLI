@@ -304,4 +304,339 @@ public class SharpCliHostUnitTests
         Assert.Equal(0, result);
         Assert.Contains("Usage: TestApp test [OPTIONS] [ARGUMENTS]", sw.ToString());
     }
+
+    [Fact]
+    public void Dispose_WithCustomWriter_DisposesWriter()
+    {
+        // Arrange
+        var mockWriter = new DisposeTrackerWriter();
+        var host = new SharpCliHost("TestApp", "Description", mockWriter);
+
+        // Act
+        host.Dispose();
+
+        // Assert
+        Assert.True(mockWriter.IsDisposed, "The provided TextWriter was not disposed.");
+    }
+
+    [Fact]
+    public void Dispose_WithDefaultWriter_DoesNotThrow()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp", "Description", null);
+
+        // Act
+        var exception = Record.Exception(() => host.Dispose());
+
+        // Assert
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public void RegisterCommandsGeneric_StaticMethods_RegistersSuccessfully()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+
+        // Act
+        host.RegisterCommands<StaticCommands>();
+
+        // Assert
+        string[] args = { "static-test" };
+        var result = host.RunAsync(args).GetAwaiter().GetResult();
+
+        Assert.Equal(0, result);
+        Assert.True(StaticCommands.WasExecuted);
+    }
+
+    [Fact]
+    public async Task RegisterCommandsGeneric_InstanceMethods_AreIgnored()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+
+        // Act
+        host.RegisterCommands<MixedCommands>();
+
+        // Assert
+        Assert.NotNull(host);
+
+        string[] args = { "instance-test" };
+        await Assert.ThrowsAsync<CommandNotFoundException>(() => host.RunAsync(args));
+    }
+
+    [Fact]
+    public void RegisterCommandsGeneric_ReturnsHostInstance()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+
+        // Act
+        var returnedHost = host.RegisterCommands<StaticCommands>();
+
+        // Assert
+        Assert.Same(host, returnedHost);
+    }
+
+    [Fact]
+    public void ParameterlessConstructor_SetsDefaultProperties()
+    {
+        // Act
+        var ex = new InvalidArgumentValueException();
+
+        // Assert
+        Assert.Empty(ex.ArgumentName);
+        Assert.Empty(ex.ProvidedValue);
+        Assert.Equal(typeof(object), ex.ExpectedType);
+    }
+
+    [Fact]
+    public void MessageConstructor_SetsMessageAndDefaults()
+    {
+        // Arrange
+        var message = "Custom error message";
+
+        // Act
+        var ex = new InvalidArgumentValueException(message);
+
+        // Assert
+        Assert.Equal(message, ex.Message);
+        Assert.Empty(ex.ArgumentName);
+        Assert.Empty(ex.ProvidedValue);
+        Assert.Equal(typeof(object), ex.ExpectedType);
+    }
+
+    [Fact]
+    public void MessageAndInnerExceptionConstructor_SetsProperties()
+    {
+        // Arrange
+        var message = "Error message";
+        var inner = new Exception("Inner");
+
+        // Act
+        var ex = new InvalidArgumentValueException(message, inner);
+
+        // Assert
+        Assert.Equal(message, ex.Message);
+        Assert.Same(inner, ex.InnerException);
+        Assert.Empty(ex.ArgumentName);
+    }
+
+    [Fact]
+    public void DetailedConstructor_SetsPropertiesAndFormattedMessage()
+    {
+        // Arrange
+        var argName = "count";
+        var val = "abc";
+        var type = typeof(int);
+        var inner = new Exception("Parsing failed");
+
+        // Act
+        var ex = new InvalidArgumentValueException(argName, val, type, inner);
+
+        // Assert
+        Assert.Equal(argName, ex.ArgumentName);
+        Assert.Equal(val, ex.ProvidedValue);
+        Assert.Equal(type, ex.ExpectedType);
+        Assert.Same(inner, ex.InnerException);
+        Assert.Contains("'abc'", ex.Message);
+        Assert.Contains("'count'", ex.Message);
+        Assert.Contains("Int32", ex.Message);
+    }
+
+    [Fact]
+    public void SerializationConstructor_RoundTripsCorrectly()
+    {
+        // Arrange
+        var originalEx = new InvalidArgumentValueException("limit", "high", typeof(double));
+
+        var info = new SerializationInfo(typeof(InvalidArgumentValueException), new FormatterConverter());
+        var context = new StreamingContext(StreamingContextStates.All);
+
+        // Manually populate the info to simulate the serialization process
+        info.AddValue("ArgumentName", "limit");
+        info.AddValue("ProvidedValue", "high");
+        info.AddValue("ExpectedType", typeof(double));
+        // Base Exception fields
+        info.AddValue("ClassName", "InvalidArgumentValueException");
+        info.AddValue("Message", originalEx.Message);
+        info.AddValue("Data", null);
+        info.AddValue("InnerException", null);
+        info.AddValue("HelpURL", null);
+        info.AddValue("StackTraceString", null);
+        info.AddValue("RemoteStackTraceString", null);
+        info.AddValue("RemoteStackIndex", 0);
+        info.AddValue("ExceptionMethod", null);
+        info.AddValue("HResult", originalEx.HResult);
+        info.AddValue("Source", null);
+
+        // Act
+        var constructor = typeof(InvalidArgumentValueException).GetConstructor(
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            null, [typeof(SerializationInfo), typeof(StreamingContext)], null);
+
+        var deserializedEx = (InvalidArgumentValueException)constructor!.Invoke([info, context]);
+
+        // Assert
+        Assert.Equal("limit", deserializedEx.ArgumentName);
+        Assert.Equal("high", deserializedEx.ProvidedValue);
+        Assert.Equal(typeof(double), deserializedEx.ExpectedType);
+    }
+
+    [Fact]
+    public void AllConstructors_And_Properties_Coverage()
+    {
+        // 1. Parameterless
+        var ex1 = new InvalidArgumentValueException();
+        Assert.Empty(ex1.ArgumentName);
+
+        // 2. Message only
+        var ex2 = new InvalidArgumentValueException("Error");
+        Assert.Equal("Error", ex2.Message);
+
+        // 3. Message and Inner
+        var inner = new Exception("Inner");
+        var ex3 = new InvalidArgumentValueException("Error", inner);
+        Assert.Same(inner, ex3.InnerException);
+
+        // 4. Detailed (The primary one used by SharpCliHost)
+        var ex4 = new InvalidArgumentValueException("param", "val", typeof(int), inner);
+        Assert.Equal("param", ex4.ArgumentName);
+        Assert.Equal("val", ex4.ProvidedValue);
+        Assert.Equal(typeof(int), ex4.ExpectedType);
+    }
+
+    [Fact]
+    public void SerializationConstructor_FullData_SetsProperties()
+    {
+        // Arrange
+        var info = new SerializationInfo(typeof(InvalidArgumentValueException), new FormatterConverter());
+        var context = new StreamingContext(StreamingContextStates.All);
+
+        info.AddValue("ArgumentName", "test-arg");
+        info.AddValue("ProvidedValue", "test-val");
+        info.AddValue("ExpectedType", typeof(bool));
+
+        // Populate required base Exception fields for the constructor to run
+        AddRequiredBaseFields(info);
+
+        // Act
+        var ex = InvokeSerializationConstructor(info, context);
+
+        // Assert
+        Assert.Equal("test-arg", ex.ArgumentName);
+        Assert.Equal("test-val", ex.ProvidedValue);
+        Assert.Equal(typeof(bool), ex.ExpectedType);
+    }
+
+    [Fact]
+    public void SerializationConstructor_MissingData_UsesFallbackValues()
+    {
+        // This test specifically targets the '?? string.Empty' and '?? typeof(object)' branches
+        // Arrange
+        var info = new SerializationInfo(typeof(InvalidArgumentValueException), new FormatterConverter());
+        var context = new StreamingContext(StreamingContextStates.All);
+
+        // We explicitly add nulls for the keys to trigger the coalescing logic (??)
+        info.AddValue("ArgumentName", null, typeof(string));
+        info.AddValue("ProvidedValue", null, typeof(string));
+        info.AddValue("ExpectedType", null, typeof(Type));
+
+        AddRequiredBaseFields(info);
+
+        // Act
+        var ex = InvokeSerializationConstructor(info, context);
+
+        // Assert
+        Assert.Equal(string.Empty, ex.ArgumentName);
+        Assert.Equal(string.Empty, ex.ProvidedValue);
+        Assert.Equal(typeof(object), ex.ExpectedType);
+    }
+
+    // --- Reflection Helpers to access the protected constructor ---
+
+    private InvalidArgumentValueException InvokeSerializationConstructor(SerializationInfo info,
+        StreamingContext context)
+    {
+        var constructor = typeof(InvalidArgumentValueException).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            null, [typeof(SerializationInfo), typeof(StreamingContext)], null);
+
+        return (InvalidArgumentValueException)constructor!.Invoke([info, context]);
+    }
+
+    private void AddRequiredBaseFields(SerializationInfo info)
+    {
+        info.AddValue("ClassName", "InvalidArgumentValueException");
+        info.AddValue("Message", "msg");
+        info.AddValue("Data", null);
+        info.AddValue("InnerException", null);
+        info.AddValue("HelpURL", null);
+        info.AddValue("StackTraceString", null);
+        info.AddValue("RemoteStackTraceString", null);
+        info.AddValue("RemoteStackIndex", 0);
+        info.AddValue("ExceptionMethod", null);
+        info.AddValue("HResult", 0);
+        info.AddValue("Source", null);
+    }
+
+    [Fact]
+    public async Task ShowHelpAsync_WithDescription_OutputsFullHeader()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        var host = new SharpCliHost("TestApp", "A cool CLI description", sw);
+
+        // Act
+        await host.RunAsync([]); // Triggers ShowHelpAsync
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Contains("TestApp - A cool CLI description", output);
+        Assert.Contains("USAGE:", output);
+    }
+
+    [Fact]
+    public async Task ShowHelpAsync_NoDescription_OutputsNameOnly()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        // Passing empty string for description
+        var host = new SharpCliHost("MinimalApp", "", sw);
+
+        // Act
+        await host.RunAsync(["--help"]);
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Contains("MinimalApp", output);
+        Assert.DoesNotContain(" - ", output);
+    }
+
+    [Fact]
+    public async Task ShowHelpAsync_WithCommands_OutputsSortedCommandsAndDescriptions()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        var host = new SharpCliHost("TestApp", "Desc", sw);
+
+        // Registering out of alphabetical order to test sorting
+        host.RegisterCommands(new HelpTestCommands());
+
+        // Act
+        await host.RunAsync(["help"]);
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Contains("COMMANDS:", output);
+
+        // Verify Alphabetical Order (z-cmd should come after a-cmd)
+        var indexA = output.IndexOf("a-cmd", StringComparison.Ordinal);
+        var indexZ = output.IndexOf("z-cmd", StringComparison.Ordinal);
+        Assert.True(indexA < indexZ, "Commands should be sorted alphabetically.");
+
+        // Verify Descriptions are present
+        Assert.Contains("a-cmd | Alpha description", output);
+        Assert.Contains("z-cmd | Zebra description", output);
+    }
 }
