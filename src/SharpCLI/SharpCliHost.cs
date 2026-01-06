@@ -21,17 +21,17 @@ using System.Diagnostics.CodeAnalysis;
 /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
 /// Provides an attribute-based approach for building command-line applications in C#.
 /// </summary>
-public class SharpCliHost
+public class SharpCliHost : IDisposable
 {
     /// <summary>
     /// Dictionary storing all registered commands by their names
     /// </summary>
-    private readonly Dictionary<string, CommandInfo> _commands = new();
+    private readonly ConcurrentDictionary<string, CommandInfo> _commands = new();
 
     /// <summary>
     /// Dictionary mapping command aliases to their actual command names
     /// </summary>
-    private readonly Dictionary<string, string> _aliases = new();
+    private readonly ConcurrentDictionary<string, string> _aliases = new();
 
     private readonly string _name;
     private readonly string _description;
@@ -67,11 +67,11 @@ public class SharpCliHost
     /// Registers all methods marked with [Command] attribute from an instance object.
     /// This allows for instance-based commands where the object can maintain state.
     /// </summary>
-    /// <param name="commandsesObject">Object containing command methods</param>
+    /// <param name="commandsContainer">Container containing command methods</param>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
-    public SharpCliHost RegisterCommands(ICommandsContainer commandsesObject)
+    public SharpCliHost RegisterCommands(ICommandsContainer commandsContainer)
     {
-        var type = commandsesObject.GetType();
+        var type = commandsContainer.GetType();
         // Get both instance and static methods from the object
         var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
@@ -80,7 +80,7 @@ public class SharpCliHost
             var commandAttr = method.GetCustomAttribute<CommandAttribute>();
             if (commandAttr != null)
             {
-                RegisterCommand(commandsesObject, method, commandAttr);
+                RegisterCommand(commandsContainer, method, commandAttr);
             }
         }
 
@@ -158,7 +158,9 @@ public class SharpCliHost
                     Required = !param.HasDefaultValue,
                     // Use attribute default value, then parameter default, then type default
                     DefaultValue = optAttr.DefaultValue ??
-                                   (param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType)),
+                                   (param.HasDefaultValue
+                                       ? param.DefaultValue
+                                       : GetDefaultValue(param.ParameterType)),
                     Description = optAttr.Description,
                     ShortName = optAttr.ShortName,
                     LongName = optAttr.LongName
@@ -195,7 +197,7 @@ public class SharpCliHost
         };
 
         // Register the command by name
-        _commands[commandAttr.Name] = commandInfo;
+        _commands.TryAdd(commandInfo.Name, commandInfo);
 
         // Register all aliases for this command
         foreach (var alias in commandAttr.Aliases)
@@ -215,7 +217,7 @@ public class SharpCliHost
         // Show help if no arguments provided
         if (args.Length == 0)
         {
-            ShowHelp();
+            await ShowHelpAsync();
             return 0;
         }
 
@@ -224,7 +226,7 @@ public class SharpCliHost
         // Handle global help commands
         if (commandName is "--help" or "-h" or "help")
         {
-            ShowHelp();
+            await ShowHelpAsync();
             return 0;
         }
 
@@ -237,8 +239,8 @@ public class SharpCliHost
         // Check if command exists
         if (!_commands.TryGetValue(commandName, out var command))
         {
-            _writer.WriteLine($"Unknown command: {commandName}");
-            _writer.WriteLine($"Use '{_name} --help' for usage information.");
+            await _writer.WriteLineAsync($"Unknown command: {commandName}");
+            await _writer.WriteLineAsync($"Use '{_name} --help' for usage information.");
             return 1;
         }
 
@@ -250,7 +252,7 @@ public class SharpCliHost
             // Handle command-specific help
             if (commandArgs.Contains("--help") || commandArgs.Contains("-h"))
             {
-                ShowCommandHelp(commandName, command);
+                await ShowCommandHelp(commandName, command);
                 return 0;
             }
 
@@ -290,7 +292,7 @@ public class SharpCliHost
         catch (Exception ex)
         {
             // Handle any errors during command execution
-            _writer.WriteLine($"Error executing command: {ex.Message}");
+            await _writer.WriteLineAsync($"Error executing command: {ex.Message}");
             return 1;
         }
     }
@@ -481,7 +483,7 @@ public class SharpCliHost
     /// </summary>
     /// <param name="commandName">Name of the command to show help for</param>
     /// <param name="command">Command info containing help details</param>
-    private void ShowCommandHelp(string commandName, CommandInfo command)
+    private async Task ShowCommandHelp(string commandName, CommandInfo command)
     {
         var sb = new StringBuilder();
 
@@ -489,18 +491,18 @@ public class SharpCliHost
 
         if (!string.IsNullOrEmpty(command.Description))
         {
-            sb.AppendLine($"{command.Description}\n");
+            sb.AppendLine($"{command.Description}");
         }
 
         // Show arguments section
         var arguments = command.Parameters.Where(p => p.IsArgument).OrderBy(p => p.Position);
         if (arguments.Any())
         {
-            sb.AppendLine("Arguments:\n");
+            sb.AppendLine("\nArguments:");
             foreach (var arg in arguments)
             {
                 var required = arg.Required ? " (required)" : " (optional)";
-                sb.AppendLine($"  {arg.Name.ToUpper()}{required}  {arg.Description}\n");
+                sb.AppendLine($"  {arg.Name.ToUpper()}{required} | {arg.Description}");
             }
         }
 
@@ -508,37 +510,50 @@ public class SharpCliHost
         var options = command.Parameters.Where(p => p.IsOption);
         if (options.Any())
         {
-            sb.AppendLine("Options:\n");
+            sb.AppendLine("\nOptions:");
             foreach (var opt in options)
             {
                 var shortOpt = string.IsNullOrEmpty(opt.ShortName) ? "   " : $"-{opt.ShortName},";
-                sb.AppendLine($"  {shortOpt} --{opt.LongName}  {opt.Description}\n");
+                sb.AppendLine($"  {shortOpt} --{opt.LongName} | {opt.Description}");
             }
         }
+
+        await _writer.WriteLineAsync(sb.ToString());
     }
 
     /// <summary>
     /// Displays the main help screen showing all available commands.
     /// Called when no command is specified or help is requested.
     /// </summary>
-    private void ShowHelp()
+    private async Task ShowHelpAsync()
     {
-        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(_description)) await _writer.WriteLineAsync($"{_name} - {_description}\n");
+        else await _writer.WriteLineAsync($"{_name}\n");
 
-        if (!string.IsNullOrWhiteSpace(_description)) sb.AppendLine($"{_name} - {_description}\n");
-        else sb.AppendLine($"{_name}\n");
+        await _writer.WriteLineAsync("USAGE:\n");
+        await _writer.WriteLineAsync($"  {_name} <command> [options] [arguments]\n");
+        if (!_commands.IsEmpty) await _writer.WriteLineAsync("COMMANDS:");
 
-        sb.AppendLine("USAGE:\n");
-        sb.AppendLine($"  {_name} <command> [options] [arguments]\n");
-        sb.AppendLine();
-        sb.AppendLine("COMMANDS:\n");
-
-        foreach (var kvp in _commands)
+        foreach (var item in _commands.OrderBy(kvp => kvp.Key))
         {
-            sb.AppendLine($"  {kvp.Key,-15} {kvp.Value.Description}");
+            if (!string.IsNullOrWhiteSpace(item.Value.Description))
+            {
+                await _writer.WriteAsync($"\t{item.Key} | {item.Value.Description}\n");
+            }
         }
 
-        sb.AppendLine($"\nUse '{_name} <command> --help' for more information about a command.");
-        _writer.WriteLine(sb.ToString());
+        await _writer.WriteLineAsync($"\nUse '{_name} <command> --help' for more information about a command.");
+    }
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting 
+    /// unmanaged resources synchronously.
+    /// </summary>
+    /// <remarks>
+    /// Disposes of the underlying <see cref="TextWriter"/> if it was provided.
+    /// </remarks>
+    public void Dispose()
+    {
+        _writer?.Dispose();
     }
 }

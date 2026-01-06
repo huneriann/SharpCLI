@@ -4,16 +4,16 @@
 args = ["help"];
 
 // Basic method
-args = ["basic-method"];
-
-// Method with arguments
-args = ["-mwa", "Mamed", "ALIYEV"];
-
-// Method with arguments and options
-args = ["-mwao", "Mamed", "ALIYEV", "-a", "26", "-vc" /*not sending value, default value is 100*/];
-
-// Async method
-args = ["-asyncm", "Mamed"];
+// args = ["basic-method"];
+//
+// // Method with arguments
+// args = ["-mwa", "Mamed", "ALIYEV"];
+//
+// // Method with arguments and options
+// args = ["-mwao", "Mamed", "ALIYEV", "-a", "26", "-vc" /*not sending value, default value is 100*/];
+//
+// // Async method
+// args = ["-asyncm", "Mamed"];
 
 var app = new SharpCliHost("cli-app-static-methods", "CLI Application with Static methods")
     .RegisterCommands<StaticCommands>();

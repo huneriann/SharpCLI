@@ -1,81 +1,82 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net10.0;</TargetFrameworks>
-    <LangVersion>12.0</LangVersion>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.1;</TargetFrameworks>
+        <LangVersion>12.0</LangVersion>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <PackageId>SharpCLI</PackageId>
-    <Version>1.4.10</Version>
-    <Title>SharpCli - Modern CLI Framework for .NET</Title>
-    <Summary>Attribute-based CLI framework for .NET with automatic parsing and help generation</Summary>
-    <Description>A modern, attribute-based CLI framework for .NET that makes building command-line applications simple and intuitive. Transform your methods into powerful CLI commands using simple attributes with automatic argument parsing, help generation, and async support.</Description>
-    <Authors>Hashimzada Ilkin</Authors>
-    <PackageIcon>icon.png</PackageIcon>
-    <PackageTags>cli;command-line;dotnet;csharp;framework;console;arguments;options;parsing;attributes;modern;async</PackageTags>
-    <RepositoryUrl>https://github.com/huneriann/SharpCLI</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/huneriann/SharpCLI</PackageProjectUrl>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <RepositoryBranch>master</RepositoryBranch>
-    <Company>huneriann</Company>
-    <Product>SharpCLI</Product>
-    <Copyright>Copyright © $(Authors) $([System.DateTime]::Now.Year)</Copyright>
-  </PropertyGroup>
+    <PropertyGroup>
+        <PackageId>SharpCLI</PackageId>
+        <Version>1.5.0</Version>
+        <Title>SharpCli - Modern CLI Framework for .NET</Title>
+        <Summary>Attribute-based CLI framework for .NET with automatic parsing and help generation</Summary>
+        <Description>A modern, attribute-based CLI framework for .NET that makes building command-line applications simple and intuitive. Transform your methods into powerful CLI commands using simple attributes with automatic argument parsing, help generation, and async support.</Description>
+        <Authors>Hashimzada Ilkin</Authors>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageTags>cli;command-line;dotnet;csharp;framework;console;arguments;options;parsing;attributes;modern;async</PackageTags>
+        <RepositoryUrl>https://github.com/huneriann/SharpCLI</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <!--<PackageReleaseNotes>See CHANGELOG.md for detailed release notes.</PackageReleaseNotes>-->
+        <PackageProjectUrl>https://github.com/huneriann/SharpCLI</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <RepositoryBranch>master</RepositoryBranch>
+        <Company>huneriann</Company>
+        <Product>SharpCLI</Product>
+        <Copyright>Copyright © $(Authors) $([System.DateTime]::Now.Year)</Copyright>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PropertyGroup>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
-    <Deterministic>true</Deterministic>
-    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
-  </PropertyGroup>
+        <Deterministic>true</Deterministic>
+        <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    </PropertyGroup>
 
-  <!-- Modern .NET trimming -->
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <IsTrimmable>true</IsTrimmable>
-    <TrimMode>link</TrimMode>
-  </PropertyGroup>
+    <!-- Modern .NET trimming -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <IsTrimmable>true</IsTrimmable>
+        <TrimMode>link</TrimMode>
+    </PropertyGroup>
 
-  <!-- Assembly metadata -->
-  <PropertyGroup>
-    <AssemblyTitle>SharpCLI</AssemblyTitle>
-    <AssemblyDescription>A modern, attribute-based CLI framework for .NET</AssemblyDescription>
-    <AssemblyCompany>$(Company)</AssemblyCompany>
-    <AssemblyProduct>$(Product)</AssemblyProduct>
-    <AssemblyCopyright>$(Copyright)</AssemblyCopyright>
-  </PropertyGroup>
+    <!-- Assembly metadata -->
+    <PropertyGroup>
+        <AssemblyTitle>SharpCLI</AssemblyTitle>
+        <AssemblyDescription>A modern, attribute-based CLI framework for .NET</AssemblyDescription>
+        <AssemblyCompany>$(Company)</AssemblyCompany>
+        <AssemblyProduct>$(Product)</AssemblyProduct>
+        <AssemblyCopyright>$(Copyright)</AssemblyCopyright>
+    </PropertyGroup>
 
-  <!-- Performance optimizations -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <Optimize>true</Optimize>
-    <DebugType>portable</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
+    <!-- Performance optimizations -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <Optimize>true</Optimize>
+        <DebugType>portable</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <Optimize>false</Optimize>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <Optimize>false</Optimize>
+        <DebugType>full</DebugType>
+        <DebugSymbols>true</DebugSymbols>
+        <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../README.md" Pack="true" PackagePath="\" />
-    <None Include="../../LICENSE.md" Pack="true" PackagePath="\" />
-    <None Include="../../icon.png" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="../../README.md" Pack="true" PackagePath="\"/>
+        <None Include="../../LICENSE.md" Pack="true" PackagePath="\"/>
+        <None Include="../../icon.png" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
 </Project>
