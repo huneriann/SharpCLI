@@ -1,10 +1,10 @@
-namespace SharpCLI.Tests.UnitTests;
+namespace SharpCLI.Tests.UnitTests.Commands;
 
-public class TestCommands : ICommandsContainer
+public class BasicCommands : ICommandsContainer
 {
     public bool WasExecuted { get; private set; }
     public string? LastValue { get; private set; }
-    
+
 
     [Command("test", Description = "A test command", Aliases = ["t"])]
     public int ExecuteTest(
@@ -44,10 +44,4 @@ public class TestCommands : ICommandsContainer
         LastValue = $"{first}-{second}";
         return 0;
     }
-}
-
-public enum TestLevel
-{
-    Low,
-    High
 }
