@@ -44,8 +44,8 @@ public class SharpCliHost : IDisposable
     /// <param name="name">The name of the CLI application</param>
     /// <param name="description">Optional description of the CLI application</param>
     /// <param name="writer">
-    /// The <see cref="TextWriter"/> used for all output, including help text and error messages. 
-    /// Defaults to <see cref="Console.Out"/> if null. Injecting a custom writer is recommended 
+    /// The <see cref="TextWriter"/> used for all output, including help text and error messages.
+    /// Defaults to <see cref="Console.Out"/> if null. Injecting a custom writer is recommended
     /// for unit testing to avoid thread-safety issues with the global Console state.
     /// </param>
     public SharpCliHost(string name, string description = "", TextWriter? writer = null)
@@ -74,7 +74,6 @@ public class SharpCliHost : IDisposable
         var type = commandsContainer.GetType();
         // Get both instance and static methods from the object
         var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
-
         foreach (var method in methods)
         {
             var commandAttr = method.GetCustomAttribute<CommandAttribute>();
@@ -94,8 +93,7 @@ public class SharpCliHost : IDisposable
     /// <typeparam name="T">Type containing static command methods</typeparam>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
 #if NET5_0_OR_GREATER
-    public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>()
-        where T : class, ICommandsContainer
+        public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>() where T : class, ICommandsContainer
 #else
     public SharpCliHost RegisterCommands<T>() where T : class, ICommandsContainer
 #endif
@@ -103,7 +101,6 @@ public class SharpCliHost : IDisposable
         var type = typeof(T);
         // Only get static methods since no instance is provided
         var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
-
         foreach (var method in methods)
         {
             var commandAttr = method.GetCustomAttribute<CommandAttribute>();
@@ -133,7 +130,6 @@ public class SharpCliHost : IDisposable
         {
             var argAttr = param.GetCustomAttribute<ArgumentAttribute>();
             var optAttr = param.GetCustomAttribute<OptionAttribute>();
-
             if (argAttr != null)
             {
                 // Parameter is marked as an argument (positional parameter)
@@ -158,9 +154,7 @@ public class SharpCliHost : IDisposable
                     Required = !param.HasDefaultValue,
                     // Use attribute default value, then parameter default, then type default
                     DefaultValue = optAttr.DefaultValue ??
-                                   (param.HasDefaultValue
-                                       ? param.DefaultValue
-                                       : GetDefaultValue(param.ParameterType)),
+                                   (param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType)),
                     Description = optAttr.Description,
                     ShortName = optAttr.ShortName,
                     LongName = optAttr.LongName
@@ -175,14 +169,29 @@ public class SharpCliHost : IDisposable
                     Type = param.ParameterType,
                     IsArgument = true,
                     Required = !param.HasDefaultValue,
-                    DefaultValue = param.HasDefaultValue ? param.DefaultValue : null,
+                    DefaultValue = param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType),
                     Position = parameterInfos.Count(p => p.IsArgument)
                 });
             }
         }
 
-        // Determine if the method is async by checking return type
-        var isAsync = method.ReturnType == typeof(Task<int>) || method.ReturnType == typeof(Task);
+        // Check for duplicate parameter names
+        var duplicateNames = parameterInfos.GroupBy(p => p.Name).Where(g => g.Count() > 1).Select(g => g.Key);
+        if (duplicateNames.Any())
+        {
+            throw new InvalidCommandConfigurationException(
+                $"Duplicate parameter names found: {string.Join(", ", duplicateNames)}");
+        }
+
+        // Determine if the method is async or sync and validate return type
+        var returnType = method.ReturnType;
+        bool isAsync = returnType == typeof(Task<int>) || returnType == typeof(Task);
+        bool isSync = returnType == typeof(int) || returnType == typeof(void);
+        if (!isAsync && !isSync)
+        {
+            throw new InvalidCommandConfigurationException(
+                $"Unsupported return type '{returnType.Name}' for command method '{method.Name}'. Supported: Task<int>, Task, int, void.");
+        }
 
         // Create command info object to store all command metadata
         var commandInfo = new CommandInfo
@@ -197,12 +206,18 @@ public class SharpCliHost : IDisposable
         };
 
         // Register the command by name
-        _commands.TryAdd(commandInfo.Name, commandInfo);
+        if (!_commands.TryAdd(commandInfo.Name, commandInfo))
+        {
+            throw new CommandAlreadyExistsException(commandInfo.Name);
+        }
 
         // Register all aliases for this command
         foreach (var alias in commandAttr.Aliases)
         {
-            _aliases[alias] = commandAttr.Name;
+            if (!_aliases.TryAdd(alias, commandAttr.Name))
+            {
+                throw new AliasAlreadyExistsException(alias);
+            }
         }
     }
 
@@ -239,9 +254,7 @@ public class SharpCliHost : IDisposable
         // Check if command exists
         if (!_commands.TryGetValue(commandName, out var command))
         {
-            await _writer.WriteLineAsync($"Unknown command: {commandName}");
-            await _writer.WriteLineAsync($"Use '{_name} --help' for usage information.");
-            return 1;
+            throw new CommandNotFoundException(commandName);
         }
 
         // Remove command name from arguments
@@ -282,12 +295,20 @@ public class SharpCliHost : IDisposable
             {
                 // Handle synchronous methods
                 var result = command.Method.Invoke(command.Instance, parameters);
-                if (result is int intResult)
-                    return intResult; // Return the int result
-
+                if (result is int intResult) return intResult; // Return the int result
                 // Void methods or unexpected return types, assume success
                 return 0;
             }
+        }
+        catch (SharpCliException ex)
+        {
+            await _writer.WriteLineAsync($"Error: {ex.Message}");
+            if (ex is CommandNotFoundException)
+            {
+                await _writer.WriteLineAsync($"Use '{_name} --help' for usage information.");
+            }
+
+            return 1;
         }
         catch (Exception ex)
         {
@@ -323,7 +344,6 @@ public class SharpCliHost : IDisposable
         {
             var arg = args[i];
             var isOption = false;
-
             if (arg.StartsWith("--"))
             {
                 // Handle long option format: --option-name
@@ -349,9 +369,13 @@ public class SharpCliHost : IDisposable
                 }
             }
 
-            // If not an option, add to remaining arguments for positional processing
             if (!isOption)
             {
+                if (arg.StartsWith("-"))
+                {
+                    throw new UnrecognizedArgumentException(arg);
+                }
+
                 remainingArgs.Add(arg);
             }
         }
@@ -361,7 +385,13 @@ public class SharpCliHost : IDisposable
         {
             var argument = arguments[i];
             var argIndex = Array.IndexOf(command.Parameters, argument);
-            result[argIndex] = ConvertValue(remainingArgs[i], argument.Type);
+            result[argIndex] = ConvertValue(remainingArgs[i], argument.Type, argument.Name);
+        }
+
+        // Check for extra unrecognized positional arguments
+        if (remainingArgs.Count > arguments.Length)
+        {
+            throw new UnrecognizedArgumentException(string.Join(" ", remainingArgs.Skip(arguments.Length)));
         }
 
         // Validate that all required arguments are provided
@@ -369,9 +399,9 @@ public class SharpCliHost : IDisposable
         {
             if (!arg.Required) continue;
             var argIndex = Array.IndexOf(command.Parameters, arg);
-            if (result[argIndex].Equals(GetDefaultValue(arg.Type)))
+            if (Equals(result[argIndex], GetDefaultValue(arg.Type)))
             {
-                throw new ArgumentException($"Required argument '{arg.Name}' is missing");
+                throw new MissingRequiredArgumentException(arg.Name);
             }
         }
 
@@ -398,11 +428,11 @@ public class SharpCliHost : IDisposable
         {
             // Value options require the next argument as the value
             argIndex++;
-            result[index] = ConvertValue(args[argIndex], option.Type);
+            result[index] = ConvertValue(args[argIndex], option.Type, option.Name);
         }
         else
         {
-            throw new ArgumentException($"Option {option.LongName} requires a value");
+            throw new MissingOptionValueException(option.LongName ?? option.ShortName ?? option.Name);
         }
     }
 
@@ -412,27 +442,32 @@ public class SharpCliHost : IDisposable
     /// </summary>
     /// <param name="value">String value to convert</param>
     /// <param name="targetType">Target type to convert to</param>
+    /// <param name="paramName">Name of the parameter for error reporting</param>
     /// <returns>Converted value</returns>
-    private static object ConvertValue(string value, Type targetType)
+    private static object ConvertValue(string value, Type targetType, string paramName)
     {
-        // Handle nullable types by getting the underlying type
-        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+        try
         {
-            targetType = Nullable.GetUnderlyingType(targetType)!;
+            // Handle nullable types by getting the underlying type
+            var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+            // Handle common types with specific parsing
+            if (underlyingType == typeof(string)) return value;
+            if (underlyingType == typeof(int)) return int.Parse(value, CultureInfo.InvariantCulture);
+            if (underlyingType == typeof(double)) return double.Parse(value, CultureInfo.InvariantCulture);
+            if (underlyingType == typeof(float)) return float.Parse(value, CultureInfo.InvariantCulture);
+            if (underlyingType == typeof(long)) return long.Parse(value, CultureInfo.InvariantCulture);
+            if (underlyingType == typeof(decimal)) return decimal.Parse(value, CultureInfo.InvariantCulture);
+            if (underlyingType == typeof(bool)) return bool.Parse(value);
+            if (underlyingType.IsEnum) return Enum.Parse(underlyingType, value, true);
+
+            // Fallback to general type conversion
+            return Convert.ChangeType(value, underlyingType);
         }
-
-        // Handle common types with specific parsing
-        if (targetType == typeof(string)) return value;
-        if (targetType == typeof(int)) return int.Parse(value, CultureInfo.InvariantCulture);
-        if (targetType == typeof(double)) return double.Parse(value, CultureInfo.InvariantCulture);
-        if (targetType == typeof(float)) return float.Parse(value, CultureInfo.InvariantCulture);
-        if (targetType == typeof(long)) return long.Parse(value, CultureInfo.InvariantCulture);
-        if (targetType == typeof(decimal)) return decimal.Parse(value, CultureInfo.InvariantCulture);
-        if (targetType == typeof(bool)) return bool.Parse(value);
-        if (targetType.IsEnum) return Enum.Parse(targetType, value, true);
-
-        // Fallback to general type conversion
-        return Convert.ChangeType(value, targetType);
+        catch (Exception ex)
+        {
+            throw new InvalidArgumentValueException(paramName, value, targetType, ex);
+        }
     }
 
     /// <summary>
@@ -473,7 +508,6 @@ public class SharpCliHost : IDisposable
             var lambda = Expression.Lambda<Func<object>>(convertExpr);
             return lambda.Compile();
         });
-
         return factory();
     }
 
@@ -486,9 +520,7 @@ public class SharpCliHost : IDisposable
     private async Task ShowCommandHelp(string commandName, CommandInfo command)
     {
         var sb = new StringBuilder();
-
         sb.AppendLine($"Usage: {_name} {commandName} [OPTIONS] [ARGUMENTS]\n");
-
         if (!string.IsNullOrEmpty(command.Description))
         {
             sb.AppendLine($"{command.Description}");
@@ -502,7 +534,7 @@ public class SharpCliHost : IDisposable
             foreach (var arg in arguments)
             {
                 var required = arg.Required ? " (required)" : " (optional)";
-                sb.AppendLine($"  {arg.Name.ToUpper()}{required} | {arg.Description}");
+                sb.AppendLine($" {arg.Name.ToUpper()}{required} | {arg.Description}");
             }
         }
 
@@ -513,8 +545,8 @@ public class SharpCliHost : IDisposable
             sb.AppendLine("\nOptions:");
             foreach (var opt in options)
             {
-                var shortOpt = string.IsNullOrEmpty(opt.ShortName) ? "   " : $"-{opt.ShortName},";
-                sb.AppendLine($"  {shortOpt} --{opt.LongName} | {opt.Description}");
+                var shortOpt = string.IsNullOrEmpty(opt.ShortName) ? " " : $"-{opt.ShortName},";
+                sb.AppendLine($" {shortOpt} --{opt.LongName} | {opt.Description}");
             }
         }
 
@@ -531,9 +563,9 @@ public class SharpCliHost : IDisposable
         else await _writer.WriteLineAsync($"{_name}\n");
 
         await _writer.WriteLineAsync("USAGE:\n");
-        await _writer.WriteLineAsync($"  {_name} <command> [options] [arguments]\n");
-        if (!_commands.IsEmpty) await _writer.WriteLineAsync("COMMANDS:");
+        await _writer.WriteLineAsync($" {_name} <command> [options] [arguments]\n");
 
+        if (!_commands.IsEmpty) await _writer.WriteLineAsync("COMMANDS:");
         foreach (var item in _commands.OrderBy(kvp => kvp.Key))
         {
             if (!string.IsNullOrWhiteSpace(item.Value.Description))
@@ -546,7 +578,7 @@ public class SharpCliHost : IDisposable
     }
 
     /// <summary>
-    /// Performs application-defined tasks associated with freeing, releasing, or resetting 
+    /// Performs application-defined tasks associated with freeing, releasing, or resetting
     /// unmanaged resources synchronously.
     /// </summary>
     /// <remarks>
