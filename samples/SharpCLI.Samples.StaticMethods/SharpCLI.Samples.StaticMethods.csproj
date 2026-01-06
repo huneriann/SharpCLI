@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SharpCLI" Version="1.4.9" />
+    <ProjectReference Include="..\..\src\SharpCLI\SharpCLI.csproj" />
   </ItemGroup>
 
 </Project>
