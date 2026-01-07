@@ -7,7 +7,7 @@ bugs, adding features, improving documentation, or helping with testing.
 
 ### Prerequisites
 
-- **.NET Standard 2.0/2.1 or .NET 5.0 SDK** or later
+- **.NET Standard 2.1**
 - **Git**
 - A code editor (Visual Studio, VS Code, JetBrains Rider, etc.)
 
@@ -36,16 +36,20 @@ bugs, adding features, improving documentation, or helping with testing.
 
 ```
 SharpCLI/
+├── .github/workflows/              # CI/CD workflows
 ├── src/
-│   └── SharpCLI/                 # Main library project
-│       ├── Attributes/           # Command, Argument, Option attributes
-│       ├── Models/              # Internal data models
-│       ├── SharpCliHost.cs      # Main framework class
-│       └── SharpCLI.csproj      # Multi-target (netstandard2.0, net8.0)
-├── .github/workflows/           # CI/CD workflows
-├── README.md
+│   └── SharpCLI/                   # Main library project
+│       ├── Attributes/             # Command, Argument, Option attributes
+│       ├── Exceptions/             # Custom exceptions of library
+│       ├── Models/                 # Internal data models
+│       ├── SharpCliHost.cs         # Main framework class
+│       ├── SharpCliHostBuilder.cs  # Builder for main framework class
+│       └── SharpCLI.csproj         
+├── tests/SharpCLI.Tests.UnitTests  # Unit tests for SharpCliHost and SharpCliHostBuilder
 ├── CONTRIBUTING.md
-└── LICENSE.md
+├── icon.png
+├── LICENSE.md
+└── README.md
 ```
 
 ## How to Contribute
@@ -137,7 +141,7 @@ test: add unit tests for multi-target framework compatibility
 3. **Build and test** across all target frameworks:
    ```
    dotnet build
-   dotnet test  # When tests are available
+   dotnet test
    ```
 
 4. **Update documentation** if needed (README.md, CONTRIBUTING.md etc.)
