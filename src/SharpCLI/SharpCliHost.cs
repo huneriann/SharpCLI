@@ -33,28 +33,6 @@ public class SharpCliHost : IDisposable
     /// </summary>
     private readonly ConcurrentDictionary<string, string> _aliases = new();
 
-    private readonly string _name;
-    private readonly string _description;
-    private readonly TextWriter? _writer;
-
-    /// <summary>
-    /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
-    /// Provides an attribute-based approach for building command-line applications in C#.
-    /// </summary>
-    /// <param name="name">The name of the CLI application</param>
-    /// <param name="description">Optional description of the CLI application</param>
-    /// <param name="writer">
-    /// The <see cref="TextWriter"/> used for all output, including help text and error messages.
-    /// Defaults to <see cref="Console.Out"/> if null. Injecting a custom writer is recommended
-    /// for unit testing to avoid thread-safety issues with the global Console state.
-    /// </param>
-    public SharpCliHost(string name, string description = "", TextWriter? writer = null)
-    {
-        _name = name;
-        _description = description;
-        _writer = writer ?? Console.Out;
-    }
-
     /// <summary>
     /// Cache of compiled factory functions that generate default values for types.
     /// This provides high-performance type-safe default value creation while avoiding
@@ -62,6 +40,48 @@ public class SharpCliHost : IDisposable
     /// </summary>
     private static readonly ConcurrentDictionary<Type, Func<object>> DefaultValueFactories =
         new ConcurrentDictionary<Type, Func<object>>();
+
+    private readonly string _name;
+    private readonly string _description;
+    private readonly string? _customHelpMessage;
+    private readonly TextWriter? _writer;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SharpCliHost"/> class.
+    /// </summary>
+    /// <param name="name">The name of the CLI application. This is displayed in help output and usage messages.</param>
+    /// <param name="description">Optional description of the CLI application, shown in the main help screen.</param>
+    /// <param name="writer">
+    /// The <see cref="TextWriter"/> used for all output, including help text and error messages.
+    /// Defaults to <see cref="Console.Out"/> if null. Injecting a custom writer is recommended for unit testing.
+    /// </param>
+    /// <param name="customHelpMessage">
+    /// Optional custom message to display at the top of the main help screen (when no command is provided or --help is used).
+    /// If provided, this message is shown before the standard usage and command list.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="name"/> is null.</exception>
+    public SharpCliHost(string name, string description = "", TextWriter? writer = null, string? customHelpMessage = "")
+    {
+        _name = name;
+        _description = description;
+        _customHelpMessage = customHelpMessage;
+        _writer = writer ?? Console.Out;
+    }
+
+    /// <summary>
+    /// Creates a new builder instance to configure and construct a <see cref="SharpCliHost"/> using a fluent API.
+    /// </summary>
+    /// <returns>A new <see cref="Builder"/> instance for configuring the host.</returns>
+    /// <example>
+    /// <code>
+    /// var host = SharpCliHost.CreateBuilder()
+    ///     .Name("myapp")
+    ///     .Description("My awesome CLI tool")
+    ///     .CustomHelpMessage("Type 'myapp &lt;command&gt; --help' for details.")
+    ///     .Build();
+    /// </code>
+    /// </example>
+    public static SharpCliHostBuilder CreateBuilder() => new SharpCliHostBuilder();
 
     /// <summary>
     /// Registers all methods marked with [Command] attribute from an instance object.
@@ -559,6 +579,12 @@ public class SharpCliHost : IDisposable
     /// </summary>
     private async Task ShowHelpAsync()
     {
+        if (!string.IsNullOrWhiteSpace(_customHelpMessage))
+        {
+            await _writer.WriteLineAsync(_customHelpMessage);
+            return;
+        }
+
         if (!string.IsNullOrWhiteSpace(_description)) await _writer.WriteLineAsync($"{_name} - {_description}\n");
         else await _writer.WriteLineAsync($"{_name}\n");
 

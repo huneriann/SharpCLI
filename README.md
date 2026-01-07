@@ -13,9 +13,10 @@ generation, and async support.
 
 ## Acknowledgments
 
-SharpCLI's design and architecture are derived from the foundational concepts established by [Python Click](https://github.com/pallets/click), developed by the Pallets team.
+SharpCLI's design and architecture are derived from the foundational concepts established
+by [Python Click](https://github.com/pallets/click), developed by the Pallets team.
 
-##  Features
+## Features
 
 - **Method-Based Commands** - Turn any method into a CLI command with a simple attribute
 - **Attribute-Driven** - Use `[Command]`, `[Argument]`, and `[Option]` attributes to define your CLI
@@ -27,6 +28,7 @@ SharpCLI's design and architecture are derived from the foundational concepts es
 - **Zero Dependencies** - Lightweight with no external dependencies
 
 ## Installation
+
 ```text
 dotnet add package SharpCli
 ```
@@ -78,6 +80,7 @@ public class NonStaticCommands : ICommandsContainer
 ```
 
 ### 2. Use Your CLI
+
 ```
 # Basic usage
 cli-app hello-world
@@ -90,9 +93,25 @@ cli-app --help
 cli-app greet --help
 ```
 
+## Builder Options
+
+The SharpCliHostBuilder provides a clean, fluent way to configure your application:
+
+```csharp
+
+var app = new SharpCliHost()
+    .CreateBuilder()                        
+    .Name("myapp")                          // Required: App name used in help/usage
+    .Description("My awesome CLI tool")     // Optional: Shown in main help header
+    .Writer(new StringWriter())             // Optional: Custom output (great for testing)
+    .CustomHelpMessage("Custom welcome text\nLine two...") // Optional: Top of main help
+    .Build();
+```
+
 ## Advanced Features
 
 ### Async Commands
+
 ```csharp
 [Command("download")]
 public async Task<int> Download(
@@ -105,5 +124,7 @@ public async Task<int> Download(
 }
 ```
 
-##  License
-This project is licensed under the MIT License - see the [MIT License](https://github.com/huneriann/sharpcli/blob/master/LICENSE.md) file for details. 
+## License
+
+This project is licensed under the MIT License - see
+the [MIT License](https://github.com/huneriann/sharpcli/blob/master/LICENSE.md) file for details. 
