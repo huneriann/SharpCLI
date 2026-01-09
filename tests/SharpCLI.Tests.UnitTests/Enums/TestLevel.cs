@@ -1,4 +1,4 @@
-namespace SharpCLI.Tests.UnitTests;
+namespace SharpCLI.Tests.UnitTests.Enums;
 
 public enum TestLevel
 {
