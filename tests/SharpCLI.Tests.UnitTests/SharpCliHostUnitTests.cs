@@ -639,4 +639,45 @@ public class SharpCliHostUnitTests
         Assert.Contains("a-cmd | Alpha description", output);
         Assert.Contains("z-cmd | Zebra description", output);
     }
+
+    [Fact]
+    public void CreateBuilder_ReturnsNewBuilderInstance()
+    {
+        // Act
+        var builder = SharpCliHost.CreateBuilder();
+
+        // Assert
+        Assert.NotNull(builder);
+        Assert.IsType<SharpCliHostBuilder>(builder);
+    }
+
+    [Fact]
+    public void CreateBuilder_ProducesIndependentInstances()
+    {
+        // Act
+        var builder1 = SharpCliHost.CreateBuilder();
+        var builder2 = SharpCliHost.CreateBuilder();
+
+        // Assert
+        Assert.NotSame(builder1, builder2);
+    }
+
+    [Fact]
+    public void CreateBuilder_AllowsFluentChainingImmediately()
+    {
+        // Act
+        var host = SharpCliHost.CreateBuilder()
+            .Name("TestApp")
+            .Description("Testing Builder Factory")
+            .Build();
+
+        // Assert
+        Assert.NotNull(host);
+
+        var nameField = typeof(SharpCliHost).GetField("_name",
+            BindingFlags.NonPublic |
+            BindingFlags.Instance);
+
+        Assert.Equal("TestApp", nameField?.GetValue(host));
+    }
 }
