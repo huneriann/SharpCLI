@@ -680,4 +680,46 @@ public class SharpCliHostUnitTests
 
         Assert.Equal("TestApp", nameField?.GetValue(host));
     }
+
+    [Fact]
+    public async Task ShowHelpAsync_CommandWithoutDescription_IsStillVisible()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        var host = new SharpCliHost("TestApp", "Desc", sw);
+
+        host.RegisterCommands(new UndocumentedCommands());
+
+        // Act
+        await host.RunAsync(["--help"]);
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Contains("COMMANDS:", output);
+
+        // Verify the command name is present even if the description is missing
+        Assert.Contains("undocumented-cmd", output);
+        Assert.Contains("documented-cmd | Has a description", output);
+    }
+
+    [Fact]
+    public async Task ShowHelpAsync_CustomHelpMessage_OverridesDefaultHelp()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        var host = new SharpCliHost("TestApp", "Desc", sw);
+
+        // Use reflection to set private _customHelpMessage for testing
+        var field = typeof(SharpCliHost).GetField("_customHelpMessage",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        field?.SetValue(host, "CUSTOM_OVERRIDE_MESSAGE");
+
+        // Act
+        await host.RunAsync(["--help"]);
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Equal("CUSTOM_OVERRIDE_MESSAGE\n", output.Replace("\r\n", "\n"));
+        Assert.DoesNotContain("USAGE:", output);
+    }
 }
