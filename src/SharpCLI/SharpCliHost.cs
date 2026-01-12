@@ -592,12 +592,14 @@ public class SharpCliHost : IDisposable
         await _writer.WriteLineAsync($" {_name} <command> [options] [arguments]\n");
 
         if (!_commands.IsEmpty) await _writer.WriteLineAsync("COMMANDS:");
+
         foreach (var item in _commands.OrderBy(kvp => kvp.Key))
         {
-            if (!string.IsNullOrWhiteSpace(item.Value.Description))
-            {
-                await _writer.WriteAsync($"\t{item.Key} | {item.Value.Description}\n");
-            }
+            var description = string.IsNullOrWhiteSpace(item.Value.Description)
+                ? ""
+                : $" | {item.Value.Description}";
+
+            await _writer.WriteAsync($"\t{item.Key}{description}\n");
         }
 
         await _writer.WriteLineAsync($"\nUse '{_name} <command> --help' for more information about a command.");
