@@ -16,7 +16,7 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_ValidCommand_ExecutesSuccessfully()
     {
         // Arrange
-        string[] args = { "test", "hello", "-c", "5" };
+        string[] args = ["test", "hello", "-c", "5"];
 
         // Act
         var result = await _host.RunAsync(args);
@@ -31,7 +31,7 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_Alias_ExecutesSuccessfully()
     {
         // Arrange
-        string[] args = { "t", "alias-test" }; // 't' is alias for 'test'
+        string[] args = ["t", "alias-test"]; // 't' is alias for 'test'
 
         // Act
         var result = await _host.RunAsync(args);
@@ -45,8 +45,8 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_BooleanFlag_ParsesCorrectly()
     {
         // Arrange
-        string[] argsPresent = { "bool-test", "--force" };
-        string[] argsMissing = { "bool-test" };
+        string[] argsPresent = ["bool-test", "--force"];
+        string[] argsMissing = ["bool-test"];
 
         // Act
         var resultPresent = await _host.RunAsync(argsPresent);
@@ -61,7 +61,7 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_AsyncMethod_ReturnsExpectedValue()
     {
         // Arrange
-        string[] args = { "async-test" };
+        string[] args = ["async-test"];
 
         // Act
         var result = await _host.RunAsync(args);
@@ -77,7 +77,7 @@ public class SharpCliHostUnitTests
         var host = new SharpCliHost("TestApp", "Desc", sw);
 
         // Arrange
-        string[] args = { "ghost-command" };
+        string[] args = ["ghost-command"];
 
         // Act
         var ex = await Assert.ThrowsAsync<CommandNotFoundException>(() => host.RunAsync(args));
@@ -94,7 +94,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test" };
+        string[] args = ["test"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -111,7 +111,7 @@ public class SharpCliHostUnitTests
         var host = new SharpCliHost("TestApp", "Desc", sw);
 
         // Arrange
-        string[] args = { "--help" };
+        string[] args = ["--help"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -125,7 +125,7 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_ComplexTypes_ParsesCorrectly()
     {
         // Arrange
-        string[] args = { "types", "42", "3.14", "true", "High" };
+        string[] args = ["types", "42", "3.14", "true", "High"];
 
         // Act
         await _host.RunAsync(args);
@@ -142,7 +142,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test", "val", "--count" };
+        string[] args = ["test", "val", "--count"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -156,7 +156,7 @@ public class SharpCliHostUnitTests
     public async Task RunAsync_MultipleArguments_RespectsOrder()
     {
         // Arrange
-        string[] args = { "multi-arg", "A", "B" };
+        string[] args = ["multi-arg", "A", "B"];
 
         // Act
         await _host.RunAsync(args);
@@ -172,14 +172,15 @@ public class SharpCliHostUnitTests
     {
         // Act & Assert
         var ex = Assert.Throws<CommandAlreadyExistsException>(() => _host.RegisterCommands(_mockCommands));
-        Assert.Equal("test", ex.CommandName); // Assuming "test" is a command name
+        
+        Assert.Equal("test", ex.CommandName);
     }
 
     [Fact]
     public void RegisterCommands_DuplicateAlias_ThrowsAliasAlreadyExistsException()
     {
         // Arrange
-        var conflictingCommands = new ConflictingAliasCommands(); // Assume this has command with alias "t"
+        var conflictingCommands = new ConflictingAliasCommands();
 
         // Act & Assert
         var ex = Assert.Throws<AliasAlreadyExistsException>(() => _host.RegisterCommands(conflictingCommands));
@@ -190,7 +191,7 @@ public class SharpCliHostUnitTests
     public void RegisterCommands_InvalidReturnType_ThrowsInvalidCommandConfigurationException()
     {
         // Arrange
-        var badCommands = new BadReturnTypeCommands(); // Assume method with invalid return like string
+        var badCommands = new BadReturnTypeCommands();
 
         var host = new SharpCliHost("TestApp", "Desc");
 
@@ -205,7 +206,7 @@ public class SharpCliHostUnitTests
     {
         // Arrange
         var duplicateParamCommands =
-            new DuplicateParamNamesCommands(); // Assume method with [Argument(Name="same")] on two params
+            new DuplicateParamNamesCommands();
 
         var host = new SharpCliHost("TestApp", "Desc");
 
@@ -223,7 +224,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test", "hello", "-c", "notAnInt" };
+        string[] args = ["test", "hello", "-c", "notAnInt"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -241,7 +242,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test", "hello", "--unknown" };
+        string[] args = ["test", "hello", "--unknown"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -259,7 +260,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test", "hello", "-c", "5", "extra1", "extra2" };
+        string[] args = ["test", "hello", "-c", "5", "extra1", "extra2"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -277,7 +278,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "types", "42", "3.14", "true", "InvalidEnum" };
+        string[] args = ["types", "42", "3.14", "true", "InvalidEnum"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -295,7 +296,7 @@ public class SharpCliHostUnitTests
         host.RegisterCommands(new BasicCommands());
 
         // Arrange
-        string[] args = { "test", "--help" };
+        string[] args = ["test", "--help"];
 
         // Act
         var result = await host.RunAsync(args);
@@ -333,7 +334,7 @@ public class SharpCliHostUnitTests
     }
 
     [Fact]
-    public void RegisterCommandsGeneric_StaticMethods_RegistersSuccessfully()
+    public async Task RegisterCommandsGeneric_StaticMethods_RegistersSuccessfully()
     {
         // Arrange
         var host = new SharpCliHost("TestApp");
@@ -342,8 +343,8 @@ public class SharpCliHostUnitTests
         host.RegisterCommands<StaticCommands>();
 
         // Assert
-        string[] args = { "static-test" };
-        var result = host.RunAsync(args).GetAwaiter().GetResult();
+        string[] args = ["static-test"];
+        var result = await host.RunAsync(args);
 
         Assert.Equal(0, result);
         Assert.True(StaticCommands.WasExecuted);
@@ -361,7 +362,7 @@ public class SharpCliHostUnitTests
         // Assert
         Assert.NotNull(host);
 
-        string[] args = { "instance-test" };
+        string[] args = ["instance-test"];
         await Assert.ThrowsAsync<CommandNotFoundException>(() => host.RunAsync(args));
     }
 
@@ -711,7 +712,7 @@ public class SharpCliHostUnitTests
 
         // Use reflection to set private _customHelpMessage for testing
         var field = typeof(SharpCliHost).GetField("_customHelpMessage",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            BindingFlags.NonPublic | BindingFlags.Instance);
         field?.SetValue(host, "CUSTOM_OVERRIDE_MESSAGE");
 
         // Act
@@ -721,5 +722,34 @@ public class SharpCliHostUnitTests
         var output = sw.ToString();
         Assert.Equal("CUSTOM_OVERRIDE_MESSAGE\n", output.Replace("\r\n", "\n"));
         Assert.DoesNotContain("USAGE:", output);
+    }
+
+    [Fact]
+    public async Task RunAsync_NegativeNumbers_ParsedAsArguments()
+    {
+        // Arrange
+        string[] args = ["math", "-5", "--offset", "-10.5"];
+
+        // Act
+        var result = await _host.RunAsync(args);
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.True(_mockCommands.WasExecuted);
+        Assert.Equal(-5, _mockCommands.LastInt);
+        Assert.Equal(-10.5, _mockCommands.LastDouble);
+    }
+    
+    [Fact]
+    public async Task RunAsync_PositionalNegativeNumber_ParsesCorrectly()
+    {
+        // Arrange
+        string[] args = ["types", "-42", "3.14", "true", "High"];
+
+        // Act
+        await _host.RunAsync(args);
+
+        // Assert
+        Assert.Equal("-42|3.14|True|High", _mockCommands.LastValue);
     }
 }

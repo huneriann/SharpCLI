@@ -10,7 +10,7 @@ args = ["help"];
 // args = ["-mwa", "Mamed", "ALIYEV"];
 //
 // // Method with arguments and options
-// args = ["-mwao", "Mamed", "ALIYEV", "-a", "26", "-vc" /*not sending value, default value is 100*/];
+// args = ["-mwao", "Mamed", "ALIYEV", "-a", "26", "-vc", "10" /*not sending value, default value is 100*/];
 //
 // // Async method
 // args = ["-asyncm", "Mamed"];

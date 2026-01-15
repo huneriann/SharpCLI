@@ -358,46 +358,53 @@ public class SharpCliHost : IDisposable
             result[i] = command.Parameters[i].DefaultValue ?? GetDefaultValue(command.Parameters[i].Type);
         }
 
-        // Parse options first, collecting remaining arguments
         var remainingArgs = new List<string>();
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
             var isOption = false;
-            if (arg.StartsWith("--"))
+
+            // Check if the argument is a negative number instead of an option flag
+            // A negative number starts with '-' and is followed by a digit (e.g., -5, -0.1)
+            var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
+
+            if (!isNegativeNumber)
             {
-                // Handle long option format: --option-name
-                var longName = arg.Substring(2);
-                var option = options.FirstOrDefault(o => o.LongName == longName);
-                if (option != null)
+                if (arg.StartsWith("--"))
                 {
-                    isOption = true;
-                    var optionIndex = Array.IndexOf(command.Parameters, option);
-                    SetOptionValue(result, optionIndex, option, args, ref i);
+                    // Handle long option format: --option-name
+                    var longName = arg.Substring(2);
+                    var option = options.FirstOrDefault(o => o.LongName == longName);
+                    if (option != null)
+                    {
+                        isOption = true;
+                        var optionIndex = Array.IndexOf(command.Parameters, option);
+                        SetOptionValue(result, optionIndex, option, args, ref i);
+                    }
                 }
-            }
-            else if (arg.StartsWith("-") && arg.Length == 2)
-            {
-                // Handle short option format: -o
-                var shortName = arg.Substring(1);
-                var option = options.FirstOrDefault(o => o.ShortName == shortName);
-                if (option != null)
+                else if (arg.StartsWith("-") && arg.Length >= 2)
                 {
-                    isOption = true;
-                    var optionIndex = Array.IndexOf(command.Parameters, option);
-                    SetOptionValue(result, optionIndex, option, args, ref i);
+                    // Handle short option format: -o
+                    var shortName = arg.Substring(1);
+                    var option = options.FirstOrDefault(o => o.ShortName == shortName);
+                    if (option != null)
+                    {
+                        isOption = true;
+                        var optionIndex = Array.IndexOf(command.Parameters, option);
+                        SetOptionValue(result, optionIndex, option, args, ref i);
+                    }
                 }
             }
 
-            if (!isOption)
-            {
-                if (arg.StartsWith("-"))
-                {
-                    throw new UnrecognizedArgumentException(arg);
-                }
+            if (isOption) continue;
 
-                remainingArgs.Add(arg);
+            // If it starts with '-' but wasn't a recognized option or a negative number, it's invalid
+            if (arg.StartsWith("-") && !isNegativeNumber)
+            {
+                throw new UnrecognizedArgumentException(arg);
             }
+
+            remainingArgs.Add(arg);
         }
 
         // Process positional arguments in order
@@ -419,6 +426,8 @@ public class SharpCliHost : IDisposable
         {
             if (!arg.Required) continue;
             var argIndex = Array.IndexOf(command.Parameters, arg);
+
+            // Check if the result still holds the default value (meaning it wasn't provided)
             if (Equals(result[argIndex], GetDefaultValue(arg.Type)))
             {
                 throw new MissingRequiredArgumentException(arg.Name);
