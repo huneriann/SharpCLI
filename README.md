@@ -27,6 +27,13 @@ by [Python Click](https://github.com/pallets/click), developed by the Pallets te
 - **Type Safety** - Strongly-typed parameters with compile-time checking
 - **Zero Dependencies** - Lightweight with no external dependencies
 
+## Code Quality
+[![Sonar Analysis](https://github.com/huneriann/SharpCLI/actions/workflows/sonar-analyze.yml/badge.svg)](https://github.com/huneriann/SharpCLI/actions/workflows/sonar-analyze.yml)
+[![Quality Gate Status](https://img.shields.io/sonar/quality_gate/huneriann_SharpCLI?server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/summary/new_code?id=huneriann_SharpCLI)
+[![Coverage](https://img.shields.io/sonar/coverage/huneriann_SharpCLI?server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/component_measures?id=huneriann_SharpCLI&metric=coverage&view=list)
+
+[![SonarCloud](https://sonarcloud.io/images/project_badges/sonarcloud-dark.svg)](https://sonarcloud.io/summary/new_code?id=huneriann_SharpCLI)
+
 ## Installation
 
 ```text
