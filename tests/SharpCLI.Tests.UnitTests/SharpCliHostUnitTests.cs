@@ -172,7 +172,7 @@ public class SharpCliHostUnitTests
     {
         // Act & Assert
         var ex = Assert.Throws<CommandAlreadyExistsException>(() => _host.RegisterCommands(_mockCommands));
-        
+
         Assert.Equal("test", ex.CommandName);
     }
 
@@ -324,7 +324,7 @@ public class SharpCliHostUnitTests
     public void Dispose_WithDefaultWriter_DoesNotThrow()
     {
         // Arrange
-        var host = new SharpCliHost("TestApp", "Description", null);
+        var host = new SharpCliHost("TestApp", "Description");
 
         // Act
         var exception = Record.Exception(() => host.Dispose());
@@ -446,6 +446,7 @@ public class SharpCliHostUnitTests
     }
 
     [Fact]
+    [Obsolete("Obsolete")]
     public void SerializationConstructor_RoundTripsCorrectly()
     {
         // Arrange
@@ -473,7 +474,7 @@ public class SharpCliHostUnitTests
 
         // Act
         var constructor = typeof(InvalidArgumentValueException).GetConstructor(
-            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+            BindingFlags.Instance | BindingFlags.NonPublic,
             null, [typeof(SerializationInfo), typeof(StreamingContext)], null);
 
         var deserializedEx = (InvalidArgumentValueException)constructor!.Invoke([info, context]);
@@ -508,6 +509,7 @@ public class SharpCliHostUnitTests
     }
 
     [Fact]
+    [Obsolete("Obsolete")]
     public void SerializationConstructor_FullData_SetsProperties()
     {
         // Arrange
@@ -531,6 +533,7 @@ public class SharpCliHostUnitTests
     }
 
     [Fact]
+    [Obsolete("Obsolete")]
     public void SerializationConstructor_MissingData_UsesFallbackValues()
     {
         // This test specifically targets the '?? string.Empty' and '?? typeof(object)' branches
@@ -739,7 +742,7 @@ public class SharpCliHostUnitTests
         Assert.Equal(-5, _mockCommands.LastInt);
         Assert.Equal(-10.5, _mockCommands.LastDouble);
     }
-    
+
     [Fact]
     public async Task RunAsync_PositionalNegativeNumber_ParsesCorrectly()
     {
@@ -751,5 +754,73 @@ public class SharpCliHostUnitTests
 
         // Assert
         Assert.Equal("-42|3.14|True|High", _mockCommands.LastValue);
+    }
+
+    [Fact]
+    public async Task RunAsync_CommandThrowsGenericException_ReturnsErrorCodeAndLogsMessage()
+    {
+        // Arrange
+        await using var sw = new StringWriter();
+        var host = new SharpCliHost("TestApp", "Desc", sw);
+        host.RegisterCommands(new BasicCommands());
+
+        // Act
+        // This command name corresponds to the method in the mock class below
+        var result = await host.RunAsync(["throw-error"]);
+
+        // Assert
+        var output = sw.ToString();
+        Assert.Equal(1, result);
+        Assert.Contains("Standard exception occurred", output);
+    }
+
+    [Fact]
+    public async Task RunAsync_AsyncTask_ReturnsZeroOnSuccess()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+        var asyncCommands = new AsyncVoidTaskCommands();
+        host.RegisterCommands(asyncCommands);
+
+        // Act
+        var result = await host.RunAsync(["void-task"]);
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.True(asyncCommands.WasExecuted);
+    }
+
+    [Fact]
+    public async Task RunAsync_AsyncUnexpectedReturn_ReturnsZeroAsFallback()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+        host.RegisterCommands(new CustomTaskCommands());
+
+        // Act
+        // This targets the 'default' case inside the async result switch
+        var result = await host.RunAsync(["custom-task"]);
+
+        // Assert
+        Assert.Equal(0, result);
+    }
+    
+    [Fact]
+    public async Task RunAsync_ChangeTypeFallback_ParsesByteCorrectly()
+    {
+        // Arrange
+        var host = new SharpCliHost("TestApp");
+        var mock = new FallbackTypeCommands();
+        host.RegisterCommands(mock);
+
+        // Act
+        // Byte (8-bit unsigned int) is not in the explicit if/else list, 
+        // so it falls through to Convert.ChangeType
+        string[] args = ["byte-test", "255"];
+        var result = await host.RunAsync(args);
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.Equal(255, mock.LastByteValue);
     }
 }

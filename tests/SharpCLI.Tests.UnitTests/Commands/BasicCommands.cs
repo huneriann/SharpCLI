@@ -62,4 +62,10 @@ internal class BasicCommands : ICommandsContainer
         LastValue = $"{first}-{second}";
         return 0;
     }
+    
+    [Command("throw-error", Description = "A command that always fails")]
+    public void ThrowError()
+    {
+        throw new InvalidOperationException("Standard exception occurred");
+    }
 }

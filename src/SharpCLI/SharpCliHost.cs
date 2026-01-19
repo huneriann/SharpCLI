@@ -13,10 +13,6 @@ using System.Reflection;
 using Models;
 using ParameterInfo = Models.ParameterInfo;
 
-#if NET5_0_OR_GREATER
-using System.Diagnostics.CodeAnalysis;
-#endif
-
 /// <summary>
 /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
 /// Provides an attribute-based approach for building command-line applications in C#.
@@ -38,13 +34,29 @@ public class SharpCliHost : IDisposable
     /// This provides high-performance type-safe default value creation while avoiding
     /// trimming issues with Activator.CreateInstance.
     /// </summary>
-    private static readonly ConcurrentDictionary<Type, Func<object>> DefaultValueFactories =
-        new ConcurrentDictionary<Type, Func<object>>();
+    private static readonly ConcurrentDictionary<Type, Func<object>> DefaultValueFactories = new();
 
+    /// <summary>
+    /// The name of the CLI application used in help headers and usage strings.
+    /// </summary>
     private readonly string _name;
+
+    /// <summary>
+    /// A brief description of the CLI application displayed in the main help output.
+    /// </summary>
     private readonly string _description;
+
+    /// <summary>
+    /// An optional user-defined message displayed at the top of the help screen. 
+    /// If provided, this replaces the default help header.
+    /// </summary>
     private readonly string? _customHelpMessage;
-    private readonly TextWriter? _writer;
+
+    /// <summary>
+    /// The text writer destination for all output (commands, errors, and help). 
+    /// Usually defaults to <see cref="Console.Out"/>.
+    /// </summary>
+    private readonly TextWriter _writer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SharpCliHost"/> class.
@@ -71,7 +83,7 @@ public class SharpCliHost : IDisposable
     /// <summary>
     /// Creates a new builder instance to configure and construct a <see cref="SharpCliHost"/> using a fluent API.
     /// </summary>
-    /// <returns>A new <see cref="Builder"/> instance for configuring the host.</returns>
+    /// <returns>A new <see cref="SharpCliHostBuilder"/> instance for configuring the host.</returns>
     /// <example>
     /// <code>
     /// var host = SharpCliHost.CreateBuilder()
@@ -81,7 +93,7 @@ public class SharpCliHost : IDisposable
     ///     .Build();
     /// </code>
     /// </example>
-    public static SharpCliHostBuilder CreateBuilder() => new SharpCliHostBuilder();
+    public static SharpCliHostBuilder CreateBuilder() => new();
 
     /// <summary>
     /// Registers all methods marked with [Command] attribute from an instance object.
@@ -112,11 +124,7 @@ public class SharpCliHost : IDisposable
     /// </summary>
     /// <typeparam name="T">Type containing static command methods</typeparam>
     /// <returns>Current SharpCliHost instance for method chaining</returns>
-#if NET5_0_OR_GREATER
-        public SharpCliHost RegisterCommands<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] T>() where T : class, ICommandsContainer
-#else
     public SharpCliHost RegisterCommands<T>() where T : class, ICommandsContainer
-#endif
     {
         var type = typeof(T);
         // Only get static methods since no instance is provided
@@ -166,37 +174,46 @@ public class SharpCliHost : IDisposable
             else if (optAttr != null)
             {
                 // Parameter is marked as an option (named parameter with flags)
-                parameterInfos.Add(new ParameterInfo
-                {
-                    Name = param.Name!,
-                    Type = param.ParameterType,
-                    IsOption = true,
-                    Required = !param.HasDefaultValue,
-                    // Use attribute default value, then parameter default, then type default
-                    DefaultValue = optAttr.DefaultValue ??
-                                   (param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType)),
-                    Description = optAttr.Description,
-                    ShortName = optAttr.ShortName,
-                    LongName = optAttr.LongName
-                });
+                if (param.DefaultValue != null)
+                    parameterInfos.Add(new ParameterInfo
+                    {
+                        Name = param.Name!,
+                        Type = param.ParameterType,
+                        IsOption = true,
+                        Required = !param.HasDefaultValue,
+                        DefaultValue = optAttr.DefaultValue ??
+                                       (param.HasDefaultValue
+                                           ? param.DefaultValue
+                                           : GetDefaultValue(param.ParameterType)),
+                        Description = optAttr.Description,
+                        ShortName = optAttr.ShortName,
+                        LongName = optAttr.LongName
+                    });
             }
             else
             {
                 // Parameter without attribute - treat as positional argument
-                parameterInfos.Add(new ParameterInfo
-                {
-                    Name = param.Name!,
-                    Type = param.ParameterType,
-                    IsArgument = true,
-                    Required = !param.HasDefaultValue,
-                    DefaultValue = param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType),
-                    Position = parameterInfos.Count(p => p.IsArgument)
-                });
+                if (param.DefaultValue != null)
+                    parameterInfos.Add(new ParameterInfo
+                    {
+                        Name = param.Name!,
+                        Type = param.ParameterType,
+                        IsArgument = true,
+                        Required = !param.HasDefaultValue,
+                        DefaultValue =
+                            param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType),
+                        Position = parameterInfos.Count(p => p.IsArgument)
+                    });
             }
         }
 
         // Check for duplicate parameter names
-        var duplicateNames = parameterInfos.GroupBy(p => p.Name).Where(g => g.Count() > 1).Select(g => g.Key);
+        var duplicateNames = parameterInfos
+            .GroupBy(p => p.Name)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
         if (duplicateNames.Any())
         {
             throw new InvalidCommandConfigurationException(
@@ -205,8 +222,8 @@ public class SharpCliHost : IDisposable
 
         // Determine if the method is async or sync and validate return type
         var returnType = method.ReturnType;
-        bool isAsync = returnType == typeof(Task<int>) || returnType == typeof(Task);
-        bool isSync = returnType == typeof(int) || returnType == typeof(void);
+        var isAsync = returnType == typeof(Task<int>) || returnType == typeof(Task);
+        var isSync = returnType == typeof(int) || returnType == typeof(void);
         if (!isAsync && !isSync)
         {
             throw new InvalidCommandConfigurationException(
@@ -333,6 +350,12 @@ public class SharpCliHost : IDisposable
         catch (Exception ex)
         {
             // Handle any errors during command execution
+            if (ex.InnerException != null)
+            {
+                await _writer.WriteLineAsync($"Error executing command: {ex.InnerException.Message}");
+                return 1;
+            }
+
             await _writer.WriteLineAsync($"Error executing command: {ex.Message}");
             return 1;
         }
@@ -461,7 +484,7 @@ public class SharpCliHost : IDisposable
         }
         else
         {
-            throw new MissingOptionValueException(option.LongName ?? option.ShortName ?? option.Name);
+            throw new MissingOptionValueException(option.LongName);
         }
     }
 
@@ -556,7 +579,12 @@ public class SharpCliHost : IDisposable
         }
 
         // Show arguments section
-        var arguments = command.Parameters.Where(p => p.IsArgument).OrderBy(p => p.Position);
+        var arguments = command
+            .Parameters
+            .Where(p => p.IsArgument)
+            .OrderBy(p => p.Position)
+            .ToList();
+
         if (arguments.Any())
         {
             sb.AppendLine("\nArguments:");
@@ -568,7 +596,11 @@ public class SharpCliHost : IDisposable
         }
 
         // Show options section
-        var options = command.Parameters.Where(p => p.IsOption);
+        var options = command
+            .Parameters
+            .Where(p => p.IsOption)
+            .ToList();
+
         if (options.Any())
         {
             sb.AppendLine("\nOptions:");
@@ -623,6 +655,6 @@ public class SharpCliHost : IDisposable
     /// </remarks>
     public void Dispose()
     {
-        _writer?.Dispose();
+        _writer.Dispose();
     }
 }
