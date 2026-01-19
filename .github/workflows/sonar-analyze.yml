@@ -30,8 +30,10 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install SonarCloud scanner
-        run: dotnet tool install --global dotnet-sonarscanner
+      - name: Install SonarCloud scanner & coverage tool
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet tool install --global dotnet-coverage
 
       - name: Run Scan
         env:
@@ -39,6 +41,7 @@ jobs:
           SONAR_ORG: ${{ secrets.SONAR_ORGANIZATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"$env:SONAR_ORG" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
+          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"$env:SONAR_ORG" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths="coverage.xml"
           dotnet build -c Release
+          dotnet-coverage collect "dotnet test -c Release --no-build" -f xml -o "coverage.xml"
           dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
