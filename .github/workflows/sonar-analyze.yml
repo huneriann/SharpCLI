@@ -3,7 +3,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-      types: [ opened, synchronize, reopened ]
+    types: [ opened, synchronize, reopened ]
   workflow_call:
     secrets:
       SONAR_TOKEN:
@@ -20,17 +20,25 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Install SonarCloud scanner
+        run: dotnet tool install --global dotnet-sonarscanner
+
       - name: Run Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_ORG: ${{ secrets.SONAR_ORGANIZATION }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dotnet tool install --global dotnet-sonarscanner
-          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"${{ secrets.SONAR_ORGANIZATION }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"$env:SONAR_ORG" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
           dotnet build -c Release
-          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
