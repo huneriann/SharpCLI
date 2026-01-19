@@ -1,4 +1,4 @@
-name: CI/CD
+name: Build & Test & Publish
 on:
   push:
     tags: [ 'v*' ]
@@ -16,7 +16,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: test
+      - name: Test
         run: dotnet test -c Release --verbosity normal
 
   publish:
@@ -31,9 +31,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: pack
+      - name: Pack
         run: dotnet pack -c Release src/SharpCLI/SharpCLI.csproj -o ./artifacts
 
-      - name: nuget push
+      - name: NUGET Push
         working-directory: artifacts
         run: dotnet nuget push *.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

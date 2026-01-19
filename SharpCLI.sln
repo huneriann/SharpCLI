@@ -12,6 +12,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github/workflows", ".github/workflows", "{89CF2027-24B3-49A7-98BD-C5D304F82D17}"
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\publish.yml = .github\workflows\publish.yml
+		.github\workflows\sonar-analyze.yml = .github\workflows\sonar-analyze.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{42FCB88A-5A5C-49C1-A1A3-41A02E11063C}"

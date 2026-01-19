@@ -1,0 +1,36 @@
+name: Sonar Analyze
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+      types: [ opened, synchronize, reopened ]
+  workflow_call:
+    secrets:
+      SONAR_TOKEN:
+        required: true
+      SONAR_ORGANIZATION:
+        required: true
+
+jobs:
+  analyze:
+    runs-on: windows-latest
+    steps:
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Run Scan
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"${{ secrets.SONAR_ORGANIZATION }}" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
+          dotnet build -c Release
+          dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
