@@ -23,15 +23,17 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Important for "blame" information
 
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
 
-      - name: Install SonarCloud scanner
-        run: dotnet tool install --global dotnet-sonarscanner
+      - name: Install SonarCloud scanner & coverage tool
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet tool install --global dotnet-coverage
 
       - name: Run Scan
         env:
@@ -39,6 +41,13 @@ jobs:
           SONAR_ORG: ${{ secrets.SONAR_ORGANIZATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" /o:"$env:SONAR_ORG" /d:sonar.token="$env:SONAR_TOKEN" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build -c Release
+          dotnet-sonarscanner begin /k:"huneriann_SharpCLI" `
+            /o:"$env:SONAR_ORG" `
+            /d:sonar.token="$env:SONAR_TOKEN" `
+            /d:sonar.host.url="https://sonarcloud.io" `
+            /d:sonar.cs.vscoveragexml.reportsPaths="coverage.xml" `
+            /d:sonar.exclusions="samples/**"
+
+          dotnet build -c Release /t:Rebuild
+          dotnet-coverage collect "dotnet test -c Release --no-build --verbosity normal" -f xml -o "coverage.xml"
           dotnet-sonarscanner end /d:sonar.token="$env:SONAR_TOKEN"
