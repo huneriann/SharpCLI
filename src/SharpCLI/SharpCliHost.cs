@@ -321,9 +321,9 @@ public sealed class SharpCliHost : IDisposable
             .Where(alias => _aliases.ContainsKey(alias))
             .ToList();
 
-        if (conflictingAliases.Any())
+        if (conflictingAliases.Count > 0)
         {
-            throw new AliasAlreadyExistsException(conflictingAliases.First());
+            throw new AliasAlreadyExistsException(conflictingAliases[0]);
         }
 
         // Now perform the side effect (adding to dictionary)
