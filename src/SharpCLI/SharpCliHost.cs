@@ -213,7 +213,8 @@ public sealed class SharpCliHost : IDisposable
     /// <summary>
     /// Maps a parameter explicitly marked with the [Argument] attribute.
     /// </summary>
-    private static ParameterInfo MapArgument(System.Reflection.ParameterInfo param, ArgumentAttribute attr, int position)
+    private static ParameterInfo MapArgument(System.Reflection.ParameterInfo param, ArgumentAttribute attr,
+        int position)
     {
         return new ParameterInfo
         {
@@ -265,7 +266,6 @@ public sealed class SharpCliHost : IDisposable
     /// Validates that no two parameters share the same name within a single command.
     /// </summary>
     /// <param name="parameters">The list of parameters to check.</param>
-    /// <param name="methodName">The name of the method for error reporting.</param>
     /// <exception cref="InvalidCommandConfigurationException">Thrown if duplicates are found.</exception>
     private static void ValidateParameterNames(List<ParameterInfo> parameters)
     {
@@ -288,7 +288,7 @@ public sealed class SharpCliHost : IDisposable
     /// <param name="method">The method to validate.</param>
     /// <returns>True if the method returns a Task; otherwise false.</returns>
     /// <exception cref="InvalidCommandConfigurationException">Thrown if the return type is not supported.</exception>
-    private bool ValidateAndCheckAsync(MethodInfo method)
+    private static bool ValidateAndCheckAsync(MethodInfo method)
     {
         var type = method.ReturnType;
         var isAsync = type == typeof(Task<int>) || type == typeof(Task);
@@ -316,12 +316,20 @@ public sealed class SharpCliHost : IDisposable
             throw new CommandAlreadyExistsException(commandInfo.Name);
         }
 
+        // Use .Where to identify aliases that are already registered
+        var conflictingAliases = commandInfo.Aliases
+            .Where(alias => _aliases.ContainsKey(alias))
+            .ToList();
+
+        if (conflictingAliases.Count > 0)
+        {
+            throw new AliasAlreadyExistsException(conflictingAliases[0]);
+        }
+
+        // Now perform the side effect (adding to dictionary)
         foreach (var alias in commandInfo.Aliases)
         {
-            if (!_aliases.TryAdd(alias, commandInfo.Name))
-            {
-                throw new AliasAlreadyExistsException(alias);
-            }
+            _aliases.TryAdd(alias, commandInfo.Name);
         }
     }
 
