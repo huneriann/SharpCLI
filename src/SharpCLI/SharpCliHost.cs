@@ -143,94 +143,18 @@ public sealed class SharpCliHost : IDisposable
 
     /// <summary>
     /// Internal method that processes a single command method and registers it in the system.
-    /// Analyzes method parameters to extract arguments and options information.
+    /// This acts as the high-level orchestrator for command registration.
     /// </summary>
-    /// <param name="instance">Instance object (null for static methods)</param>
-    /// <param name="method">Method info of the command</param>
-    /// <param name="commandAttr">Command attribute containing metadata</param>
+    /// <param name="instance">The object instance containing the method (null for static methods).</param>
+    /// <param name="method">The reflection metadata of the method to register.</param>
+    /// <param name="commandAttr">The command attribute containing name and alias metadata.</param>
     private void RegisterCommand(object? instance, MethodInfo method, CommandAttribute commandAttr)
     {
-        var parameters = method.GetParameters();
-        var parameterInfos = new List<ParameterInfo>();
+        var parameterInfos = ExtractParameters(method);
 
-        // Process each method parameter to determine if it's an argument or option
-        foreach (var param in parameters)
-        {
-            var argAttr = param.GetCustomAttribute<ArgumentAttribute>();
-            var optAttr = param.GetCustomAttribute<OptionAttribute>();
-            if (argAttr != null)
-            {
-                // Parameter is marked as an argument (positional parameter)
-                parameterInfos.Add(new ParameterInfo
-                {
-                    Name = argAttr.Name,
-                    Type = param.ParameterType,
-                    IsArgument = true,
-                    Required = argAttr.Required,
-                    Description = argAttr.Description,
-                    Position = parameterInfos.Count(p => p.IsArgument) // Auto-assign position
-                });
-            }
-            else if (optAttr != null)
-            {
-                // Parameter is marked as an option (named parameter with flags)
-                if (param.DefaultValue != null)
-                    parameterInfos.Add(new ParameterInfo
-                    {
-                        Name = param.Name!,
-                        Type = param.ParameterType,
-                        IsOption = true,
-                        Required = !param.HasDefaultValue,
-                        DefaultValue = optAttr.DefaultValue ??
-                                       (param.HasDefaultValue
-                                           ? param.DefaultValue
-                                           : GetDefaultValue(param.ParameterType)),
-                        Description = optAttr.Description,
-                        ShortName = optAttr.ShortName,
-                        LongName = optAttr.LongName
-                    });
-            }
-            else
-            {
-                // Parameter without attribute - treat as positional argument
-                if (param.DefaultValue != null)
-                    parameterInfos.Add(new ParameterInfo
-                    {
-                        Name = param.Name!,
-                        Type = param.ParameterType,
-                        IsArgument = true,
-                        Required = !param.HasDefaultValue,
-                        DefaultValue =
-                            param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType),
-                        Position = parameterInfos.Count(p => p.IsArgument)
-                    });
-            }
-        }
+        ValidateParameterNames(parameterInfos);
+        var isAsync = ValidateAndCheckAsync(method);
 
-        // Check for duplicate parameter names
-        var duplicateNames = parameterInfos
-            .GroupBy(p => p.Name)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-
-        if (duplicateNames.Any())
-        {
-            throw new InvalidCommandConfigurationException(
-                $"Duplicate parameter names found: {string.Join(", ", duplicateNames)}");
-        }
-
-        // Determine if the method is async or sync and validate return type
-        var returnType = method.ReturnType;
-        var isAsync = returnType == typeof(Task<int>) || returnType == typeof(Task);
-        var isSync = returnType == typeof(int) || returnType == typeof(void);
-        if (!isAsync && !isSync)
-        {
-            throw new InvalidCommandConfigurationException(
-                $"Unsupported return type '{returnType.Name}' for command method '{method.Name}'. Supported: Task<int>, Task, int, void.");
-        }
-
-        // Create command info object to store all command metadata
         var commandInfo = new CommandInfo
         {
             Name = commandAttr.Name,
@@ -242,16 +166,159 @@ public sealed class SharpCliHost : IDisposable
             IsAsync = isAsync
         };
 
-        // Register the command by name
+        StoreCommand(commandInfo);
+    }
+
+    /// <summary>
+    /// Iterates through method parameters and converts them into the internal ParameterInfo model.
+    /// </summary>
+    /// <param name="method">The method to reflect for parameters.</param>
+    /// <returns>A list of processed parameter metadata.</returns>
+    private static List<ParameterInfo> ExtractParameters(MethodInfo method)
+    {
+        var parameterInfos = new List<ParameterInfo>();
+        foreach (var param in method.GetParameters())
+        {
+            var currentArgCount = parameterInfos.Count(p => p.IsArgument);
+            parameterInfos.Add(CreateParameterInfo(param, currentArgCount));
+        }
+
+        return parameterInfos;
+    }
+
+    /// <summary>
+    /// Determines the type of parameter based on attributes and creates the appropriate info object.
+    /// </summary>
+    /// <param name="param">The reflection parameter metadata.</param>
+    /// <param name="currentArgCount">The current count of positional arguments for auto-positioning.</param>
+    /// <returns>A mapped ParameterInfo object.</returns>
+    private static ParameterInfo CreateParameterInfo(System.Reflection.ParameterInfo param, int currentArgCount)
+    {
+        var argAttr = param.GetCustomAttribute<ArgumentAttribute>();
+        var optAttr = param.GetCustomAttribute<OptionAttribute>();
+
+        if (argAttr != null)
+        {
+            return MapArgument(param, argAttr, currentArgCount);
+        }
+
+        if (optAttr != null)
+        {
+            return MapOption(param, optAttr);
+        }
+
+        return MapDefaultArgument(param, currentArgCount);
+    }
+
+    /// <summary>
+    /// Maps a parameter explicitly marked with the [Argument] attribute.
+    /// </summary>
+    private static ParameterInfo MapArgument(System.Reflection.ParameterInfo param, ArgumentAttribute attr, int position)
+    {
+        return new ParameterInfo
+        {
+            Name = attr.Name,
+            Type = param.ParameterType,
+            IsArgument = true,
+            Required = attr.Required,
+            Description = attr.Description,
+            Position = position
+        };
+    }
+
+    /// <summary>
+    /// Maps a parameter explicitly marked with the [Option] attribute.
+    /// </summary>
+    private static ParameterInfo MapOption(System.Reflection.ParameterInfo param, OptionAttribute attr)
+    {
+        return new ParameterInfo
+        {
+            Name = param.Name!,
+            Type = param.ParameterType,
+            IsOption = true,
+            Required = !param.HasDefaultValue,
+            DefaultValue = attr.DefaultValue ??
+                           (param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType)),
+            Description = attr.Description,
+            ShortName = attr.ShortName,
+            LongName = attr.LongName
+        };
+    }
+
+    /// <summary>
+    /// Maps a parameter without attributes, defaulting it to a positional argument.
+    /// </summary>
+    private static ParameterInfo MapDefaultArgument(System.Reflection.ParameterInfo param, int position)
+    {
+        return new ParameterInfo
+        {
+            Name = param.Name!,
+            Type = param.ParameterType,
+            IsArgument = true,
+            Required = !param.HasDefaultValue,
+            DefaultValue = param.HasDefaultValue ? param.HasDefaultValue : GetDefaultValue(param.ParameterType),
+            Position = position
+        };
+    }
+
+    /// <summary>
+    /// Validates that no two parameters share the same name within a single command.
+    /// </summary>
+    /// <param name="parameters">The list of parameters to check.</param>
+    /// <param name="methodName">The name of the method for error reporting.</param>
+    /// <exception cref="InvalidCommandConfigurationException">Thrown if duplicates are found.</exception>
+    private static void ValidateParameterNames(List<ParameterInfo> parameters)
+    {
+        var duplicateNames = parameters
+            .GroupBy(p => p.Name)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicateNames.Any())
+        {
+            throw new InvalidCommandConfigurationException(
+                $"Duplicate parameter names found: {string.Join(", ", duplicateNames)}");
+        }
+    }
+
+    /// <summary>
+    /// Validates the method return type and determines if the command execution is asynchronous.
+    /// </summary>
+    /// <param name="method">The method to validate.</param>
+    /// <returns>True if the method returns a Task; otherwise false.</returns>
+    /// <exception cref="InvalidCommandConfigurationException">Thrown if the return type is not supported.</exception>
+    private bool ValidateAndCheckAsync(MethodInfo method)
+    {
+        var type = method.ReturnType;
+        var isAsync = type == typeof(Task<int>) || type == typeof(Task);
+        var isSync = type == typeof(int) || type == typeof(void);
+
+        if (!isAsync && !isSync)
+        {
+            throw new InvalidCommandConfigurationException(
+                $"Unsupported return type '{type.Name}' for command '{method.Name}'.");
+        }
+
+        return isAsync;
+    }
+
+    /// <summary>
+    /// Persists the command and its aliases into the host's internal thread-safe dictionaries.
+    /// </summary>
+    /// <param name="commandInfo">The fully constructed command metadata.</param>
+    /// <exception cref="CommandAlreadyExistsException">Thrown if the command name is already registered.</exception>
+    /// <exception cref="AliasAlreadyExistsException">Thrown if an alias is already in use.</exception>
+    private void StoreCommand(CommandInfo commandInfo)
+    {
         if (!_commands.TryAdd(commandInfo.Name, commandInfo))
         {
             throw new CommandAlreadyExistsException(commandInfo.Name);
         }
 
-        // Register all aliases for this command
-        foreach (var alias in commandAttr.Aliases)
+        foreach (var alias in commandInfo.Aliases)
         {
-            if (!_aliases.TryAdd(alias, commandAttr.Name))
+            if (!_aliases.TryAdd(alias, commandInfo.Name))
             {
                 throw new AliasAlreadyExistsException(alias);
             }
