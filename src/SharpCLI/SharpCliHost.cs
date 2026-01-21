@@ -363,7 +363,7 @@ public sealed class SharpCliHost : IDisposable
     /// </summary>
     /// <param name="commandName">The command name to check.</param>
     /// <returns>True if the command name is a help request; otherwise, false.</returns>
-    private bool IsGlobalHelp(string commandName) => commandName is "--help" or "-h" or "help";
+    private static bool IsGlobalHelp(string commandName) => commandName is "--help" or "-h" or "help";
 
     /// <summary>
     /// Resolves the command name, replacing it with the actual name if it's an alias.
@@ -577,7 +577,7 @@ public sealed class SharpCliHost : IDisposable
     private static bool IsUnrecognizedOption(string arg)
     {
         var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
-        return arg.StartsWith("-") && !isNegativeNumber;
+        return arg.StartsWith('-') && !isNegativeNumber;
     }
 
     /// <summary>
