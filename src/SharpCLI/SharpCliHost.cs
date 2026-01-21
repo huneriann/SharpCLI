@@ -358,13 +358,29 @@ public sealed class SharpCliHost : IDisposable
         return await ExecuteCommand(command, commandArgs);
     }
 
+    /// <summary>
+    /// Checks if the given command name indicates a request for global help.
+    /// </summary>
+    /// <param name="commandName">The command name to check.</param>
+    /// <returns>True if the command name is a help request; otherwise, false.</returns>
     private bool IsGlobalHelp(string commandName) => commandName is "--help" or "-h" or "help";
 
+    /// <summary>
+    /// Resolves the command name, replacing it with the actual name if it's an alias.
+    /// </summary>
+    /// <param name="commandName">The command name or alias to resolve.</param>
+    /// <returns>The resolved command name.</returns>
     private string ResolveAlias(string commandName)
     {
         return _aliases.GetValueOrDefault(commandName, commandName);
     }
 
+    /// <summary>
+    /// Retrieves the command information for the given command name.
+    /// </summary>
+    /// <param name="commandName">The name of the command to retrieve.</param>
+    /// <returns>The CommandInfo for the specified command.</returns>
+    /// <exception cref="CommandNotFoundException">Thrown if the command is not found.</exception>
     private CommandInfo GetCommand(string commandName)
     {
         if (!_commands.TryGetValue(commandName, out var command))
@@ -375,6 +391,12 @@ public sealed class SharpCliHost : IDisposable
         return command!;
     }
 
+    /// <summary>
+    /// Executes the specified command with the given arguments, handling help requests and exceptions.
+    /// </summary>
+    /// <param name="command">The CommandInfo to execute.</param>
+    /// <param name="commandArgs">The arguments for the command.</param>
+    /// <returns>The exit code from the command execution.</returns>
     private async Task<int> ExecuteCommand(CommandInfo command, string[] commandArgs)
     {
         try
@@ -407,7 +429,13 @@ public sealed class SharpCliHost : IDisposable
         }
     }
 
-    private async Task<int> InvokeCommand(CommandInfo command, object[] parameters)
+    /// <summary>
+    /// Invokes the command method with the provided parameters and handles the return value.
+    /// </summary>
+    /// <param name="command">The CommandInfo containing the method to invoke.</param>
+    /// <param name="parameters">The parameters to pass to the method.</param>
+    /// <returns>The exit code from the method invocation.</returns>
+    private static async Task<int> InvokeCommand(CommandInfo command, object[] parameters)
     {
         var result = command.Method.Invoke(command.Instance, parameters);
 
@@ -424,15 +452,13 @@ public sealed class SharpCliHost : IDisposable
                     return 0;
             }
         }
-        else
-        {
-            if (result is int intResult)
-            {
-                return intResult;
-            }
 
-            return 0;
+        if (result is int intResult)
+        {
+            return intResult;
         }
+
+        return 0;
     }
 
     /// <summary>
@@ -459,6 +485,11 @@ public sealed class SharpCliHost : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Initializes the result array with default values for all parameters.
+    /// </summary>
+    /// <param name="parameters">The array of parameter information.</param>
+    /// <param name="result">The array to initialize with default values.</param>
     private static void InitializeDefaults(ParameterInfo[] parameters, object[] result)
     {
         for (var i = 0; i < parameters.Length; i++)
@@ -467,6 +498,15 @@ public sealed class SharpCliHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Processes the command-line arguments to identify and handle options, separating them from positional arguments.
+    /// Collects unrecognized arguments that start with '-' but are not valid options or negative numbers.
+    /// </summary>
+    /// <param name="args">The array of command-line arguments to process.</param>
+    /// <param name="options">The array of option parameter information.</param>
+    /// <param name="allParameters">The array of all parameter information for the command.</param>
+    /// <param name="result">The array to store parsed parameter values.</param>
+    /// <returns>A list of remaining positional arguments after processing options.</returns>
     private static List<string> ProcessOptions(string[] args, ParameterInfo[] options, ParameterInfo[] allParameters,
         object[] result)
     {
@@ -475,38 +515,10 @@ public sealed class SharpCliHost : IDisposable
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
-            var isOption = false;
-            var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
 
-            if (!isNegativeNumber)
-            {
-                if (arg.StartsWith("--"))
-                {
-                    var longName = arg.Substring(2);
-                    var option = options.FirstOrDefault(o => o.LongName == longName);
-                    if (option != null)
-                    {
-                        isOption = true;
-                        var optionIndex = Array.IndexOf(allParameters, option);
-                        SetOptionValue(result, optionIndex, option, args, ref i);
-                    }
-                }
-                else if (arg.StartsWith("-") && arg.Length >= 2)
-                {
-                    var shortName = arg.Substring(1);
-                    var option = options.FirstOrDefault(o => o.ShortName == shortName);
-                    if (option != null)
-                    {
-                        isOption = true;
-                        var optionIndex = Array.IndexOf(allParameters, option);
-                        SetOptionValue(result, optionIndex, option, args, ref i);
-                    }
-                }
-            }
+            if (TryHandleAsOption(arg, options, allParameters, args, ref i, result)) continue;
 
-            if (isOption) continue;
-
-            if (arg.StartsWith("-") && !isNegativeNumber)
+            if (IsUnrecognizedOption(arg))
             {
                 throw new UnrecognizedArgumentException(arg);
             }
@@ -517,6 +529,66 @@ public sealed class SharpCliHost : IDisposable
         return remainingArgs;
     }
 
+    /// <summary>
+    /// Attempts to handle the given argument as an option (either long or short form).
+    /// If successful, sets the option value in the result array and advances the index if a value is consumed.
+    /// </summary>
+    /// <param name="arg">The current argument to check.</param>
+    /// <param name="options">The array of option parameter information.</param>
+    /// <param name="allParameters">The array of all parameter information for the command.</param>
+    /// <param name="args">The full array of command-line arguments.</param>
+    /// <param name="i">The current index in the args array (passed by reference to advance if needed).</param>
+    /// <param name="result">The array to store parsed parameter values.</param>
+    /// <returns>True if the argument was handled as an option; otherwise, false.</returns>
+    private static bool TryHandleAsOption(string arg, ParameterInfo[] options, ParameterInfo[] allParameters,
+        string[] args, ref int i, object[] result)
+    {
+        var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
+        if (isNegativeNumber) return false;
+
+        if (arg.StartsWith("--"))
+        {
+            var longName = arg.Substring(2);
+            var option = options.FirstOrDefault(o => o.LongName == longName);
+            if (option == null) return false;
+            var optionIndex = Array.IndexOf(allParameters, option);
+            SetOptionValue(result, optionIndex, option, args, ref i);
+            return true;
+        }
+        else if (arg.StartsWith("-") && arg.Length >= 2)
+        {
+            var shortName = arg.Substring(1);
+            var option = options.FirstOrDefault(o => o.ShortName == shortName);
+            if (option == null) return false;
+            var optionIndex = Array.IndexOf(allParameters, option);
+            SetOptionValue(result, optionIndex, option, args, ref i);
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines if the given argument is an unrecognized option.
+    /// An unrecognized option starts with '-' but is not a negative number.
+    /// </summary>
+    /// <param name="arg">The argument to check.</param>
+    /// <returns>True if the argument is an unrecognized option; otherwise, false.</returns>
+    private static bool IsUnrecognizedOption(string arg)
+    {
+        var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
+        return arg.StartsWith("-") && !isNegativeNumber;
+    }
+
+    /// <summary>
+    /// Processes the remaining positional arguments after options have been handled.
+    /// Assigns converted values to the result array and checks for extra unrecognized arguments.
+    /// </summary>
+    /// <param name="arguments">The array of argument parameter information, ordered by position.</param>
+    /// <param name="remainingArgs">The list of remaining positional arguments.</param>
+    /// <param name="allParameters">The array of all parameter information for the command.</param>
+    /// <param name="result">The array to store parsed parameter values.</param>
+    /// <exception cref="UnrecognizedArgumentException">Thrown if there are extra positional arguments.</exception>
     private static void ProcessPositionalArguments(ParameterInfo[] arguments, List<string> remainingArgs,
         ParameterInfo[] allParameters, object[] result)
     {
@@ -533,6 +605,13 @@ public sealed class SharpCliHost : IDisposable
         }
     }
 
+    /// <summary>
+    /// Validates that all required arguments have been provided.
+    /// </summary>
+    /// <param name="arguments">The array of argument parameter information.</param>
+    /// <param name="allParameters">The array of all parameter information.</param>
+    /// <param name="result">The array of parsed parameter values.</param>
+    /// <exception cref="MissingRequiredArgumentException">Thrown if a required argument is missing.</exception>
     private static void ValidateRequiredArguments(ParameterInfo[] arguments, ParameterInfo[] allParameters,
         object[] result)
     {
