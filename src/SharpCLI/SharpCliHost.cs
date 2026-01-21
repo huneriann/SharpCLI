@@ -47,13 +47,13 @@ public sealed class SharpCliHost : IDisposable
     private readonly string _description;
 
     /// <summary>
-    /// An optional user-defined message displayed at the top of the help screen. 
+    /// An optional user-defined message displayed at the top of the help screen.
     /// If provided, this replaces the default help header.
     /// </summary>
     private readonly string? _customHelpMessage;
 
     /// <summary>
-    /// The text writer destination for all output (commands, errors, and help). 
+    /// The text writer destination for all output (commands, errors, and help).
     /// Usually defaults to <see cref="Console.Out"/>.
     /// </summary>
     private readonly TextWriter _writer;
@@ -87,10 +87,10 @@ public sealed class SharpCliHost : IDisposable
     /// <example>
     /// <code>
     /// var host = SharpCliHost.CreateBuilder()
-    ///     .Name("myapp")
-    ///     .Description("My awesome CLI tool")
-    ///     .CustomHelpMessage("Type 'myapp &lt;command&gt; --help' for details.")
-    ///     .Build();
+    /// .Name("myapp")
+    /// .Description("My awesome CLI tool")
+    /// .CustomHelpMessage("Type 'myapp &lt;command&gt; --help' for details.")
+    /// .Build();
     /// </code>
     /// </example>
     public static SharpCliHostBuilder CreateBuilder() => new();
@@ -151,10 +151,8 @@ public sealed class SharpCliHost : IDisposable
     private void RegisterCommand(object? instance, MethodInfo method, CommandAttribute commandAttr)
     {
         var parameterInfos = ExtractParameters(method);
-
         ValidateParameterNames(parameterInfos);
         var isAsync = ValidateAndCheckAsync(method);
-
         var commandInfo = new CommandInfo
         {
             Name = commandAttr.Name,
@@ -165,7 +163,6 @@ public sealed class SharpCliHost : IDisposable
             Parameters = parameterInfos.ToArray(),
             IsAsync = isAsync
         };
-
         StoreCommand(commandInfo);
     }
 
@@ -196,7 +193,6 @@ public sealed class SharpCliHost : IDisposable
     {
         var argAttr = param.GetCustomAttribute<ArgumentAttribute>();
         var optAttr = param.GetCustomAttribute<OptionAttribute>();
-
         if (argAttr != null)
         {
             return MapArgument(param, argAttr, currentArgCount);
@@ -257,7 +253,7 @@ public sealed class SharpCliHost : IDisposable
             Type = param.ParameterType,
             IsArgument = true,
             Required = !param.HasDefaultValue,
-            DefaultValue = param.HasDefaultValue ? param.HasDefaultValue : GetDefaultValue(param.ParameterType),
+            DefaultValue = param.HasDefaultValue ? param.DefaultValue : GetDefaultValue(param.ParameterType),
             Position = position
         };
     }
@@ -293,7 +289,6 @@ public sealed class SharpCliHost : IDisposable
         var type = method.ReturnType;
         var isAsync = type == typeof(Task<int>) || type == typeof(Task);
         var isSync = type == typeof(int) || type == typeof(void);
-
         if (!isAsync && !isSync)
         {
             throw new InvalidCommandConfigurationException(
@@ -320,7 +315,6 @@ public sealed class SharpCliHost : IDisposable
         var conflictingAliases = commandInfo.Aliases
             .Where(alias => _aliases.ContainsKey(alias))
             .ToList();
-
         if (conflictingAliases.Count > 0)
         {
             throw new AliasAlreadyExistsException(conflictingAliases[0]);
@@ -341,7 +335,6 @@ public sealed class SharpCliHost : IDisposable
     /// <returns>Exit code (0 for success, 1 for error)</returns>
     public async Task<int> RunAsync(string[] args)
     {
-        // Show help if no arguments provided
         if (args.Length == 0)
         {
             await ShowHelpAsync();
@@ -350,67 +343,51 @@ public sealed class SharpCliHost : IDisposable
 
         var commandName = args[0];
 
-        // Handle global help commands
-        if (commandName is "--help" or "-h" or "help")
+        if (IsGlobalHelp(commandName))
         {
             await ShowHelpAsync();
             return 0;
         }
 
-        // Resolve command aliases to actual command names
-        if (_aliases.TryGetValue(commandName, out var alias))
-        {
-            commandName = alias;
-        }
+        commandName = ResolveAlias(commandName);
 
-        // Check if command exists
+        var command = GetCommand(commandName);
+
+        var commandArgs = args.Skip(1).ToArray();
+
+        return await ExecuteCommand(command, commandArgs);
+    }
+
+    private bool IsGlobalHelp(string commandName) => commandName is "--help" or "-h" or "help";
+
+    private string ResolveAlias(string commandName)
+    {
+        return _aliases.GetValueOrDefault(commandName, commandName);
+    }
+
+    private CommandInfo GetCommand(string commandName)
+    {
         if (!_commands.TryGetValue(commandName, out var command))
         {
             throw new CommandNotFoundException(commandName);
         }
 
-        // Remove command name from arguments
-        var commandArgs = args.Skip(1).ToArray();
+        return command!;
+    }
 
+    private async Task<int> ExecuteCommand(CommandInfo command, string[] commandArgs)
+    {
         try
         {
-            // Handle command-specific help
             if (commandArgs.Contains("--help") || commandArgs.Contains("-h"))
             {
-                await ShowCommandHelp(commandName, command);
+                await ShowCommandHelp(command.Name, command);
                 return 0;
             }
 
-            // Parse command arguments and options into method parameters
             var parameters = ParseArguments(command, commandArgs);
 
-            // Execute the command method
-            if (command.IsAsync)
-            {
-                // Handle async methods (Task<int> or Task)
-                var result = command.Method.Invoke(command.Instance, parameters);
-                switch (result)
-                {
-                    // Return the int result from Task<int>
-                    case Task<int> taskInt:
-                        return await taskInt;
-                    // Task without return value, assume success
-                    case Task task:
-                        await task;
-                        return 0;
-                    // Fallback for unexpected return types
-                    default:
-                        return 0;
-                }
-            }
-            else
-            {
-                // Handle synchronous methods
-                var result = command.Method.Invoke(command.Instance, parameters);
-                if (result is int intResult) return intResult; // Return the int result
-                // Void methods or unexpected return types, assume success
-                return 0;
-            }
+            return await InvokeCommand(command, parameters);
         }
         catch (SharpCliException ex)
         {
@@ -424,15 +401,37 @@ public sealed class SharpCliHost : IDisposable
         }
         catch (Exception ex)
         {
-            // Handle any errors during command execution
-            if (ex.InnerException != null)
+            var message = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+            await _writer.WriteLineAsync($"Error executing command: {message}");
+            return 1;
+        }
+    }
+
+    private async Task<int> InvokeCommand(CommandInfo command, object[] parameters)
+    {
+        var result = command.Method.Invoke(command.Instance, parameters);
+
+        if (command.IsAsync)
+        {
+            switch (result)
             {
-                await _writer.WriteLineAsync($"Error executing command: {ex.InnerException.Message}");
-                return 1;
+                case Task<int> taskInt:
+                    return await taskInt;
+                case Task task:
+                    await task;
+                    return 0;
+                default:
+                    return 0;
+            }
+        }
+        else
+        {
+            if (result is int intResult)
+            {
+                return intResult;
             }
 
-            await _writer.WriteLineAsync($"Error executing command: {ex.Message}");
-            return 1;
+            return 0;
         }
     }
 
@@ -445,50 +444,61 @@ public sealed class SharpCliHost : IDisposable
     /// <returns>Array of parsed parameter values in method signature order</returns>
     private static object[] ParseArguments(CommandInfo command, string[] args)
     {
-        // Separate arguments (positional) from options (named)
         var arguments = command.Parameters.Where(p => p.IsArgument).OrderBy(p => p.Position).ToArray();
         var options = command.Parameters.Where(p => p.IsOption).ToArray();
         var result = new object[command.Parameters.Length];
 
-        // Initialize all parameters with their default values
-        for (var i = 0; i < command.Parameters.Length; i++)
-        {
-            result[i] = command.Parameters[i].DefaultValue ?? GetDefaultValue(command.Parameters[i].Type);
-        }
+        InitializeDefaults(command.Parameters, result);
 
+        var remainingArgs = ProcessOptions(args, options, command.Parameters, result);
+
+        ProcessPositionalArguments(arguments, remainingArgs, command.Parameters, result);
+
+        ValidateRequiredArguments(arguments, command.Parameters, result);
+
+        return result;
+    }
+
+    private static void InitializeDefaults(ParameterInfo[] parameters, object[] result)
+    {
+        for (var i = 0; i < parameters.Length; i++)
+        {
+            result[i] = parameters[i].DefaultValue ?? GetDefaultValue(parameters[i].Type);
+        }
+    }
+
+    private static List<string> ProcessOptions(string[] args, ParameterInfo[] options, ParameterInfo[] allParameters,
+        object[] result)
+    {
         var remainingArgs = new List<string>();
+
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
             var isOption = false;
-
-            // Check if the argument is a negative number instead of an option flag
-            // A negative number starts with '-' and is followed by a digit (e.g., -5, -0.1)
             var isNegativeNumber = arg.Length > 1 && arg[0] == '-' && char.IsDigit(arg[1]);
 
             if (!isNegativeNumber)
             {
                 if (arg.StartsWith("--"))
                 {
-                    // Handle long option format: --option-name
                     var longName = arg.Substring(2);
                     var option = options.FirstOrDefault(o => o.LongName == longName);
                     if (option != null)
                     {
                         isOption = true;
-                        var optionIndex = Array.IndexOf(command.Parameters, option);
+                        var optionIndex = Array.IndexOf(allParameters, option);
                         SetOptionValue(result, optionIndex, option, args, ref i);
                     }
                 }
                 else if (arg.StartsWith("-") && arg.Length >= 2)
                 {
-                    // Handle short option format: -o
                     var shortName = arg.Substring(1);
                     var option = options.FirstOrDefault(o => o.ShortName == shortName);
                     if (option != null)
                     {
                         isOption = true;
-                        var optionIndex = Array.IndexOf(command.Parameters, option);
+                        var optionIndex = Array.IndexOf(allParameters, option);
                         SetOptionValue(result, optionIndex, option, args, ref i);
                     }
                 }
@@ -496,7 +506,6 @@ public sealed class SharpCliHost : IDisposable
 
             if (isOption) continue;
 
-            // If it starts with '-' but wasn't a recognized option or a negative number, it's invalid
             if (arg.StartsWith("-") && !isNegativeNumber)
             {
                 throw new UnrecognizedArgumentException(arg);
@@ -505,34 +514,37 @@ public sealed class SharpCliHost : IDisposable
             remainingArgs.Add(arg);
         }
 
-        // Process positional arguments in order
+        return remainingArgs;
+    }
+
+    private static void ProcessPositionalArguments(ParameterInfo[] arguments, List<string> remainingArgs,
+        ParameterInfo[] allParameters, object[] result)
+    {
         for (var i = 0; i < arguments.Length && i < remainingArgs.Count; i++)
         {
             var argument = arguments[i];
-            var argIndex = Array.IndexOf(command.Parameters, argument);
+            var argIndex = Array.IndexOf(allParameters, argument);
             result[argIndex] = ConvertValue(remainingArgs[i], argument.Type, argument.Name);
         }
 
-        // Check for extra unrecognized positional arguments
         if (remainingArgs.Count > arguments.Length)
         {
             throw new UnrecognizedArgumentException(string.Join(" ", remainingArgs.Skip(arguments.Length)));
         }
+    }
 
-        // Validate that all required arguments are provided
+    private static void ValidateRequiredArguments(ParameterInfo[] arguments, ParameterInfo[] allParameters,
+        object[] result)
+    {
         foreach (var arg in arguments)
         {
             if (!arg.Required) continue;
-            var argIndex = Array.IndexOf(command.Parameters, arg);
-
-            // Check if the result still holds the default value (meaning it wasn't provided)
+            var argIndex = Array.IndexOf(allParameters, arg);
             if (Equals(result[argIndex], GetDefaultValue(arg.Type)))
             {
                 throw new MissingRequiredArgumentException(arg.Name);
             }
         }
-
-        return result;
     }
 
     /// <summary>
@@ -577,7 +589,6 @@ public sealed class SharpCliHost : IDisposable
         {
             // Handle nullable types by getting the underlying type
             var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
-
             // Handle common types with specific parsing
             if (underlyingType == typeof(string)) return value;
             if (underlyingType == typeof(int)) return int.Parse(value, CultureInfo.InvariantCulture);
@@ -587,7 +598,6 @@ public sealed class SharpCliHost : IDisposable
             if (underlyingType == typeof(decimal)) return decimal.Parse(value, CultureInfo.InvariantCulture);
             if (underlyingType == typeof(bool)) return bool.Parse(value);
             if (underlyingType.IsEnum) return Enum.Parse(underlyingType, value, true);
-
             // Fallback to general type conversion
             return Convert.ChangeType(value, underlyingType);
         }
@@ -659,7 +669,6 @@ public sealed class SharpCliHost : IDisposable
             .Where(p => p.IsArgument)
             .OrderBy(p => p.Position)
             .ToList();
-
         if (arguments.Any())
         {
             sb.AppendLine("\nArguments:");
@@ -675,7 +684,6 @@ public sealed class SharpCliHost : IDisposable
             .Parameters
             .Where(p => p.IsOption)
             .ToList();
-
         if (options.Any())
         {
             sb.AppendLine("\nOptions:");
@@ -703,18 +711,12 @@ public sealed class SharpCliHost : IDisposable
 
         if (!string.IsNullOrWhiteSpace(_description)) await _writer.WriteLineAsync($"{_name} - {_description}\n");
         else await _writer.WriteLineAsync($"{_name}\n");
-
         await _writer.WriteLineAsync("USAGE:\n");
         await _writer.WriteLineAsync($" {_name} <command> [options] [arguments]\n");
-
         if (!_commands.IsEmpty) await _writer.WriteLineAsync("COMMANDS:");
-
         foreach (var item in _commands.OrderBy(kvp => kvp.Key))
         {
-            var description = string.IsNullOrWhiteSpace(item.Value.Description)
-                ? ""
-                : $" | {item.Value.Description}";
-
+            var description = string.IsNullOrWhiteSpace(item.Value.Description) ? "" : $" | {item.Value.Description}";
             await _writer.WriteAsync($"\t{item.Key}{description}\n");
         }
 
