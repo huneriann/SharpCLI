@@ -17,7 +17,7 @@ using ParameterInfo = Models.ParameterInfo;
 /// Main host class for SharpCli framework that manages CLI commands, arguments, and options.
 /// Provides an attribute-based approach for building command-line applications in C#.
 /// </summary>
-public class SharpCliHost : IDisposable
+public sealed class SharpCliHost : IDisposable
 {
     /// <summary>
     /// Dictionary storing all registered commands by their names
