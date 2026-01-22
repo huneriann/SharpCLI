@@ -555,7 +555,8 @@ public sealed class SharpCliHost : IDisposable
             SetOptionValue(result, optionIndex, option, args, ref i);
             return true;
         }
-        else if (arg.StartsWith("-") && arg.Length >= 2)
+
+        if (arg.StartsWith('-') && arg.Length >= 2)
         {
             var shortName = arg.Substring(1);
             var option = options.FirstOrDefault(o => o.ShortName == shortName);

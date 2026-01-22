@@ -762,7 +762,7 @@ public class SharpCliHostUnitTests
         // Arrange
         await using var sw = new StringWriter();
         var host = new SharpCliHost("TestApp", "Desc", sw);
-        host.RegisterCommands(new BasicCommands());
+        host.RegisterCommands<StaticCommands>();
 
         // Act
         // This command name corresponds to the method in the mock class below
@@ -804,7 +804,7 @@ public class SharpCliHostUnitTests
         // Assert
         Assert.Equal(0, result);
     }
-    
+
     [Fact]
     public async Task RunAsync_ChangeTypeFallback_ParsesByteCorrectly()
     {

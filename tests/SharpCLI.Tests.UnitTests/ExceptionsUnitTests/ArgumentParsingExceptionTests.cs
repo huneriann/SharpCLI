@@ -10,7 +10,7 @@ public class ArgumentParsingExceptionTests
 
         // Assert
         Assert.NotNull(exception);
-        
+
         // Default Exception message usually contains the class name
         Assert.Contains(nameof(ArgumentParsingException), exception.Message);
     }
