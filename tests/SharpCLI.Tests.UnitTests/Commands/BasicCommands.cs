@@ -23,7 +23,7 @@ internal class BasicCommands : ICommandsContainer
 
     [Command("math", Description = "Math command for negative numbers")]
     public int MathCommand(
-        int val, 
+        int val,
         [Option("o", "offset")] double offset = 0)
     {
         WasExecuted = true;
@@ -61,11 +61,5 @@ internal class BasicCommands : ICommandsContainer
         WasExecuted = true;
         LastValue = $"{first}-{second}";
         return 0;
-    }
-    
-    [Command("throw-error", Description = "A command that always fails")]
-    public void ThrowError()
-    {
-        throw new InvalidOperationException("Standard exception occurred");
     }
 }

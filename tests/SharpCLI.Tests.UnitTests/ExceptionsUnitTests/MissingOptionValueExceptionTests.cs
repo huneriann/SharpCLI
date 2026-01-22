@@ -41,7 +41,7 @@ public class MissingOptionValueExceptionTests
         Assert.Same(inner, exception.InnerException);
         Assert.Equal($"Option '{optionName}' requires a value but none was provided.", exception.Message);
     }
-    
+
     [Fact]
     public void SerializationConstructor_ValidInfo_SetsOptionName()
     {
