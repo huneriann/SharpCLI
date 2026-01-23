@@ -28,6 +28,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3556E96B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Tests.UnitTests", "tests\SharpCLI.Tests.UnitTests\SharpCLI.Tests.UnitTests.csproj", "{4D3119EA-77C1-46D4-8A10-094DD4C7F670}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{EA8536E6-34CC-4DD8-B1A2-9C06B73CBC10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SharpCLI.Benchmarks", "benchmarks\SharpCLI.Benchmarks\SharpCLI.Benchmarks.csproj", "{61259641-5DAD-4B73-BEC7-574974505FAC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,7 @@ Global
 		{DFC22141-219A-4883-BD23-08F68DFF3D19} = {42FCB88A-5A5C-49C1-A1A3-41A02E11063C}
 		{F643E497-1164-4507-B187-D0D16B786565} = {42FCB88A-5A5C-49C1-A1A3-41A02E11063C}
 		{4D3119EA-77C1-46D4-8A10-094DD4C7F670} = {3556E96B-636C-4F2B-AC0E-E82E1C0E9A20}
+		{61259641-5DAD-4B73-BEC7-574974505FAC} = {EA8536E6-34CC-4DD8-B1A2-9C06B73CBC10}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{B12B52DB-FBC5-4E6D-9366-D84B34703E01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -59,5 +64,9 @@ Global
 		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D3119EA-77C1-46D4-8A10-094DD4C7F670}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61259641-5DAD-4B73-BEC7-574974505FAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61259641-5DAD-4B73-BEC7-574974505FAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61259641-5DAD-4B73-BEC7-574974505FAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61259641-5DAD-4B73-BEC7-574974505FAC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
