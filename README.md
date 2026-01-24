@@ -131,6 +131,42 @@ public async Task<int> Download(
 }
 ```
 
+## Performance
+
+SharpCLI is built with a focus on low overhead and high-speed command dispatching. Below is a benchmark demonstrating the execution speed of a complex command involving mixed arguments and options.
+
+### Benchmark Context
+
+```csharp
+var host = new SharpCliHost("BenchmarkSample", "Benchmarking SharpCliHost");
+host.RegisterCommands<SampleStaticCommands>();
+
+string[] args = ["mixed", "test", "42", "--flag", "--value", "custom"];
+await host.RunAsync(args);
+
+public class SampleStaticCommands : ICommandsContainer
+{
+    [Command("mixed", Description = "Mixed arguments and options")]
+    public static void MixedCommand(
+        string arg1,
+        [Argument("arg2", Required = false)] int arg2 = 0,
+        [Option("f", "flag")] bool flag = false,
+        [Option("v", "value", Description = "A string value")] string value = "default")
+    {
+        // Method body
+    }
+}
+```
+
+### Benchmark Result
+
+| Method | Runtime | Mean | Error | StdDev | Allocated | Rank |
+|:---|:---|:---|:---|:---|:---|:---:|
+| **Run Mixed Args and Options** | .NET 10.0 | 93,923.70 ns | 1,617.63 ns | 1,986.60 ns | 1192 B | 1 |
+
+
+Detailed benchmarking reports and environment details can be found in [BENCHMARK.md](./BENCHMARK.md).
+
 ## License
 
 This project is licensed under the MIT License - see
